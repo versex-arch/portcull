@@ -1,0 +1,36 @@
+# Portcull — one Cloudflare Worker serves both the static site (./public)
+# and the API, on one domain, so the login cookie stays first-party.
+name = "portcull-api"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+workers_dev = true
+
+# Your own domain (must be a zone in your Cloudflare account).
+# Remove this block to run on *.workers.dev only.
+routes = [
+  { pattern = "portcull.com", custom_domain = true }
+]
+
+# Static site. Matching files are served first; everything else hits the API.
+[assets]
+directory = "./public"
+
+# D1 database. Create yours with `npx wrangler d1 create portcull`
+# and put the printed id here. An id is not a secret — it's useless
+# without access to the Cloudflare account that owns it.
+[[d1_databases]]
+binding = "DB"
+database_name = "portcull"
+database_id = "4be03dfa-3298-4c76-b357-1fd7487097fc"
+
+# Public, non-secret settings.
+[vars]
+ALLOWED_ORIGIN   = "https://portcull.com"
+APP_URL          = "https://portcull.com"
+GITHUB_REDIRECT  = "https://portcull.com/auth/callback"
+GITHUB_CLIENT_ID = "Ov23liG9KLkdnxQ0kRlk"   # public by design (it's in the OAuth URL)
+
+# Secrets are NEVER stored in this file or in git. Set them with:
+#   npx wrangler secret put GITHUB_CLIENT_SECRET
+#   npx wrangler secret put JWT_SECRET
+# For local `wrangler dev`, copy .dev.vars.example to .dev.vars.

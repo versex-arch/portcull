@@ -1,0 +1,4 @@
+# Copy to .dev.vars for `npm run dev`. .dev.vars is git-ignored.
+# In production these are Cloudflare secrets (wrangler secret put ...).
+GITHUB_CLIENT_SECRET=
+JWT_SECRET=

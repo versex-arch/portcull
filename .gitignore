@@ -1,0 +1,16 @@
+# dependencies & tool state
+node_modules/
+.wrangler/
+package-lock.json
+
+# local secrets — never commit
+.dev.vars
+.env
+.env.*
+!.env.example
+
+# logs & OS junk
+*.log
+.DS_Store
+Thumbs.db
+desktop.ini

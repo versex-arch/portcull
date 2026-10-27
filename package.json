@@ -1,0 +1,17 @@
+{
+  "name": "portcull",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Open-source, browser-based cyber attack & defense simulator.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:init": "wrangler d1 execute portcull --remote --file=schema.sql",
+    "db:init:local": "wrangler d1 execute portcull --local --file=schema.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  },
+  "license": "MIT"
+}
